@@ -1,0 +1,240 @@
+package httpstub
+
+import (
+	"io"
+	"net/http"
+	"testing"
+)
+
+func TestStub(t *testing.T) {
+	r := NewRouter(t)
+	r.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
+	ts := r.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+
+	res, err := tc.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	{
+		got := res.StatusCode
+		want := http.StatusOK
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+	{
+		got := res.Header.Get("Content-Type")
+		want := "application/json"
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+	{
+		got := string(body)
+		want := `{"name":"alice"}`
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+}
+
+func TestRouterMatch(t *testing.T) {
+	r := NewRouter(t)
+	r.Match(func(r *http.Request) bool {
+		return r.Method == http.MethodGet
+	}).Response(http.StatusAccepted, []byte(`{"message":"accepted"}`))
+	ts := r.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+
+	res, err := tc.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+
+	got := res.StatusCode
+	want := http.StatusAccepted
+	if got != want {
+		t.Errorf("got %v\nwant %v", got, want)
+	}
+}
+
+func TestMatcherMatch(t *testing.T) {
+	r := NewRouter(t)
+	r.Path("/api/v1/users/1").Match(func(r *http.Request) bool {
+		return r.Method == http.MethodGet
+	}).ResponseString(http.StatusAccepted, `{"message":"accepted"}`)
+	ts := r.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+
+	res, err := tc.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+
+	got := res.StatusCode
+	want := http.StatusAccepted
+	if got != want {
+		t.Errorf("got %v\nwant %v", got, want)
+	}
+}
+
+func TestMatcherMethod(t *testing.T) {
+	r := NewRouter(t)
+	r.Path("/api/v1/users/1").Method(http.MethodGet).ResponseString(http.StatusAccepted, `{"message":"accepted"}`)
+	ts := r.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+
+	res, err := tc.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+
+	got := res.StatusCode
+	want := http.StatusAccepted
+	if got != want {
+		t.Errorf("got %v\nwant %v", got, want)
+	}
+}
+
+func TestRouterDefaultHeader(t *testing.T) {
+	r := NewRouter(t)
+	r.DefaultHeader("Content-Type", "application/json")
+	r.Method(http.MethodGet).Path("/api/v1/users/1").ResponseString(http.StatusAccepted, `{"message":"accepted"}`)
+	ts := r.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+
+	res, err := tc.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+
+	got := res.Header.Get("Content-Type")
+	want := "application/json"
+	if got != want {
+		t.Errorf("got %v\nwant %v", got, want)
+	}
+}
+
+func TestRouterDefaultMiddleware(t *testing.T) {
+	r := NewRouter(t)
+	r.DefaultMiddleware(func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			// override
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("{}"))
+		}
+	})
+	r.Method(http.MethodGet).Path("/api/v1/users/1").ResponseString(http.StatusAccepted, `{"message":"accepted"}`)
+	ts := r.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+
+	res, err := tc.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+
+	got := res.StatusCode
+	want := http.StatusBadRequest
+	if got != want {
+		t.Errorf("got %v\nwant %v", got, want)
+	}
+}
+
+func TestMatcherMiddleware(t *testing.T) {
+	r := NewRouter(t)
+	r.Method(http.MethodGet).Path("/api/v1/users/1").Middleware(func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			// override
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte("{}"))
+		}
+	}).ResponseString(http.StatusAccepted, `{"message":"accepted"}`)
+	ts := r.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+
+	res, err := tc.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+
+	got := res.StatusCode
+	want := http.StatusForbidden
+	if got != want {
+		t.Errorf("got %v\nwant %v", got, want)
+	}
+}
+
+func TestMatcherHander(t *testing.T) {
+	r := NewRouter(t)
+	r.Path("/api/v1/users/1").Method(http.MethodGet).Handler(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusAccepted)
+		w.Write([]byte(`{"message":"accepted"}`))
+	})
+	ts := r.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+
+	res, err := tc.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+
+	got := res.StatusCode
+	want := http.StatusAccepted
+	if got != want {
+		t.Errorf("got %v\nwant %v", got, want)
+	}
+}
