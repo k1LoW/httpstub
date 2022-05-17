@@ -55,7 +55,7 @@ import (
 	"github.com/k1LoW/httpstub"
 	twilio "github.com/twilio/twilio-go"
 	twclient "github.com/twilio/twilio-go/client"
-	v2020 "github.com/twilio/twilio-go/rest/api/v2010"
+	api "github.com/twilio/twilio-go/rest/api/v2010"
 )
 
 func TestTwilioClient(t *testing.T) {
@@ -75,7 +75,7 @@ func TestTwilioClient(t *testing.T) {
 			HTTPClient:  tc,
 		},
 	})
-	params := &v2020.CreateMessageParams{}
+	params := &api.CreateMessageParams{}
 	params.SetTo("08000000000")
 	params.SetFrom("05000000000")
 	params.SetBody("Hello there")
