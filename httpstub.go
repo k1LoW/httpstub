@@ -61,6 +61,20 @@ func NewRouter(t *testing.T) *router {
 	return &router{t: t}
 }
 
+func NewServer(t *testing.T) *router {
+	t.Helper()
+	rt := &router{t: t}
+	_ = rt.Server()
+	return rt
+}
+
+func (rt *router) Client() *http.Client {
+	if rt.server == nil {
+		return nil
+	}
+	return rt.server.Client()
+}
+
 func (rt *router) Server() *httptest.Server {
 	if rt.server == nil {
 		rt.server = httptest.NewServer(rt)
@@ -68,6 +82,12 @@ func (rt *router) Server() *httptest.Server {
 	client := rt.server.Client()
 	client.Transport = newTransport(rt.server.URL)
 	return rt.server
+}
+
+func (rt *router) Close() {
+	if rt.server != nil {
+		rt.server.Close()
+	}
 }
 
 func (rt *router) Match(fn func(r *http.Request) bool) *matcher {

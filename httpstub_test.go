@@ -238,3 +238,30 @@ func TestMatcherHander(t *testing.T) {
 		t.Errorf("got %v\nwant %v", got, want)
 	}
 }
+
+func TestServer(t *testing.T) {
+	ts := NewServer(t)
+	ts.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+
+	res, err := tc.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := string(body)
+	want := `{"name":"alice"}`
+	if got != want {
+		t.Errorf("got %v\nwant %v", got, want)
+	}
+}
