@@ -150,7 +150,7 @@ func (m *matcher) Handler(fn func(w http.ResponseWriter, r *http.Request)) {
 func (m *matcher) Response(status int, body []byte) {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(status)
-		w.Write(body)
+		_, _ = w.Write(body)
 	}
 	m.handler = http.HandlerFunc(fn)
 }

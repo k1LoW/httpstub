@@ -157,7 +157,7 @@ func TestRouterDefaultMiddleware(t *testing.T) {
 		return func(w http.ResponseWriter, r *http.Request) {
 			// override
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("{}"))
+			_, _ = w.Write([]byte("{}"))
 		}
 	})
 	r.Method(http.MethodGet).Path("/api/v1/users/1").ResponseString(http.StatusAccepted, `{"message":"accepted"}`)
@@ -188,7 +188,7 @@ func TestMatcherMiddleware(t *testing.T) {
 		return func(w http.ResponseWriter, r *http.Request) {
 			// override
 			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte("{}"))
+			_, _ = w.Write([]byte("{}"))
 		}
 	}).ResponseString(http.StatusAccepted, `{"message":"accepted"}`)
 	ts := r.Server()
@@ -216,7 +216,7 @@ func TestMatcherHander(t *testing.T) {
 	r := NewRouter(t)
 	r.Path("/api/v1/users/1").Method(http.MethodGet).Handler(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusAccepted)
-		w.Write([]byte(`{"message":"accepted"}`))
+		_, _ = w.Write([]byte(`{"message":"accepted"}`))
 	})
 	ts := r.Server()
 	t.Cleanup(func() {
