@@ -70,6 +70,7 @@ func NewServer(t *testing.T) *router {
 
 func (rt *router) Client() *http.Client {
 	if rt.server == nil {
+		rt.t.Error("server is not started yet")
 		return nil
 	}
 	return rt.server.Client()
@@ -85,9 +86,11 @@ func (rt *router) Server() *httptest.Server {
 }
 
 func (rt *router) Close() {
-	if rt.server != nil {
-		rt.server.Close()
+	if rt.server == nil {
+		rt.t.Error("server is not started yet")
+		return
 	}
+	rt.server.Close()
 }
 
 func (rt *router) Match(fn func(r *http.Request) bool) *matcher {
