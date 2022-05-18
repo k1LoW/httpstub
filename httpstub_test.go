@@ -239,7 +239,7 @@ func TestMatcherHander(t *testing.T) {
 	}
 }
 
-func TestServer(t *testing.T) {
+func TestNewServer(t *testing.T) {
 	ts := NewServer(t)
 	ts.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
 	t.Cleanup(func() {
@@ -263,5 +263,31 @@ func TestServer(t *testing.T) {
 	want := `{"name":"alice"}`
 	if got != want {
 		t.Errorf("got %v\nwant %v", got, want)
+	}
+}
+
+func TestRequests(t *testing.T) {
+	r := NewRouter(t)
+	m := r.Method(http.MethodGet).Path("/api/v1/users/1")
+	m.Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
+	r.Method(http.MethodGet).Path("/api/v1/projects").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"projects": []}`)
+	ts := r.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+
+	res, err := tc.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+	if len(r.Requests()) != 1 {
+		t.Errorf("got %v\nwant %v", len(r.Requests()), 1)
+	}
+	if len(m.Requests()) != 1 {
+		t.Errorf("got %v\nwant %v", len(m.Requests()), 1)
 	}
 }

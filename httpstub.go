@@ -1,6 +1,8 @@
 package httpstub
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -16,6 +18,7 @@ type router struct {
 	matchers    []*matcher
 	server      *httptest.Server
 	middlewares middlewareFuncs
+	requests    []*http.Request
 	t           *testing.T
 }
 
@@ -23,6 +26,7 @@ type matcher struct {
 	matchFuncs  []matchFunc
 	handler     http.HandlerFunc
 	middlewares middlewareFuncs
+	requests    []*http.Request
 }
 
 type matchFunc func(r *http.Request) bool
@@ -38,6 +42,8 @@ func (mws middlewareFuncs) then(fn http.HandlerFunc) http.HandlerFunc {
 
 func (rt *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rt.t.Helper()
+	r2 := cloneReq(r)
+	rt.requests = append(rt.requests, r2)
 
 	for _, m := range rt.matchers {
 		match := true
@@ -47,6 +53,7 @@ func (rt *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if match {
+			m.requests = append(m.requests, r2)
 			mws := append(rt.middlewares, m.middlewares...)
 			mws.then(m.handler).ServeHTTP(w, r)
 			return
@@ -181,6 +188,22 @@ func (m *matcher) Response(status int, body []byte) {
 func (m *matcher) ResponseString(status int, body string) {
 	b := []byte(body)
 	m.Response(status, b)
+}
+
+func (rt *router) Requests() []*http.Request {
+	return rt.requests
+}
+
+func (m *matcher) Requests() []*http.Request {
+	return m.requests
+}
+
+func cloneReq(r *http.Request) *http.Request {
+	r2 := r.Clone(r.Context())
+	body, _ := io.ReadAll(r.Body)
+	r.Body = io.NopCloser(bytes.NewReader(body))
+	r2.Body = io.NopCloser(bytes.NewReader(body))
+	return r2
 }
 
 func methodMatchFunc(method string) matchFunc {
