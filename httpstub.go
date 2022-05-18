@@ -12,9 +12,9 @@ import (
 	"testing"
 )
 
-var _ http.Handler = (*router)(nil)
+var _ http.Handler = (*Router)(nil)
 
-type router struct {
+type Router struct {
 	matchers    []*matcher
 	server      *httptest.Server
 	middlewares middlewareFuncs
@@ -40,7 +40,7 @@ func (mws middlewareFuncs) then(fn http.HandlerFunc) http.HandlerFunc {
 	return fn
 }
 
-func (rt *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rt.t.Helper()
 	r2 := cloneReq(r)
 	rt.requests = append(rt.requests, r2)
@@ -63,19 +63,19 @@ func (rt *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rt.t.Errorf("httpstub error: request did not match\n---REQUEST START---\n%s\n---REQUEST END---\n", string(dump))
 }
 
-func NewRouter(t *testing.T) *router {
+func NewRouter(t *testing.T) *Router {
 	t.Helper()
-	return &router{t: t}
+	return &Router{t: t}
 }
 
-func NewServer(t *testing.T) *router {
+func NewServer(t *testing.T) *Router {
 	t.Helper()
-	rt := &router{t: t}
+	rt := &Router{t: t}
 	_ = rt.Server()
 	return rt
 }
 
-func (rt *router) Client() *http.Client {
+func (rt *Router) Client() *http.Client {
 	if rt.server == nil {
 		rt.t.Error("server is not started yet")
 		return nil
@@ -83,7 +83,7 @@ func (rt *router) Client() *http.Client {
 	return rt.server.Client()
 }
 
-func (rt *router) Server() *httptest.Server {
+func (rt *Router) Server() *httptest.Server {
 	if rt.server == nil {
 		rt.server = httptest.NewServer(rt)
 	}
@@ -92,7 +92,7 @@ func (rt *router) Server() *httptest.Server {
 	return rt.server
 }
 
-func (rt *router) Close() {
+func (rt *Router) Close() {
 	if rt.server == nil {
 		rt.t.Error("server is not started yet")
 		return
@@ -100,7 +100,7 @@ func (rt *router) Close() {
 	rt.server.Close()
 }
 
-func (rt *router) Match(fn func(r *http.Request) bool) *matcher {
+func (rt *Router) Match(fn func(r *http.Request) bool) *matcher {
 	m := &matcher{
 		matchFuncs: []matchFunc{fn},
 	}
@@ -113,7 +113,7 @@ func (m *matcher) Match(fn func(r *http.Request) bool) *matcher {
 	return m
 }
 
-func (rt *router) Method(method string) *matcher {
+func (rt *Router) Method(method string) *matcher {
 	fn := methodMatchFunc(method)
 	m := &matcher{
 		matchFuncs: []matchFunc{fn},
@@ -128,7 +128,7 @@ func (m *matcher) Method(method string) *matcher {
 	return m
 }
 
-func (rt *router) Path(path string) *matcher {
+func (rt *Router) Path(path string) *matcher {
 	fn := pathMatchFunc(path)
 	m := &matcher{
 		matchFuncs: []matchFunc{fn},
@@ -143,11 +143,11 @@ func (m *matcher) Path(path string) *matcher {
 	return m
 }
 
-func (rt *router) DefaultMiddleware(mw func(next http.HandlerFunc) http.HandlerFunc) {
+func (rt *Router) DefaultMiddleware(mw func(next http.HandlerFunc) http.HandlerFunc) {
 	rt.middlewares = append(rt.middlewares, mw)
 }
 
-func (rt *router) DefaultHeader(key, value string) {
+func (rt *Router) DefaultHeader(key, value string) {
 	mw := func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Add(key, value)
@@ -190,7 +190,7 @@ func (m *matcher) ResponseString(status int, body string) {
 	m.Response(status, b)
 }
 
-func (rt *router) Requests() []*http.Request {
+func (rt *Router) Requests() []*http.Request {
 	return rt.requests
 }
 
