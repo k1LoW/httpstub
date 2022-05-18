@@ -38,6 +38,9 @@ func TestStub(t *testing.T) {
 	if got != want {
 		t.Errorf("got %v\nwant %v", got, want)
 	}
+	if len(r.Requests()) != 1 {
+		t.Errorf("got %v\nwant %v", len(r.Requests()), 1)
+	}
 }
 ```
 
@@ -75,6 +78,9 @@ func TestStub(t *testing.T) {
 	want := `{"name":"alice"}`
 	if got != want {
 		t.Errorf("got %v\nwant %v", got, want)
+	}
+	if len(ts.Requests()) != 1 {
+		t.Errorf("got %v\nwant %v", len(ts.Requests()), 1)
 	}
 }
 ```
