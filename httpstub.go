@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -20,6 +21,7 @@ type Router struct {
 	middlewares middlewareFuncs
 	requests    []*http.Request
 	t           *testing.T
+	mu          sync.RWMutex
 }
 
 type matcher struct {
@@ -27,6 +29,7 @@ type matcher struct {
 	handler     http.HandlerFunc
 	middlewares middlewareFuncs
 	requests    []*http.Request
+	mu          sync.RWMutex
 }
 
 type matchFunc func(r *http.Request) bool
@@ -43,7 +46,9 @@ func (mws middlewareFuncs) then(fn http.HandlerFunc) http.HandlerFunc {
 func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rt.t.Helper()
 	r2 := cloneReq(r)
+	rt.mu.Lock()
 	rt.requests = append(rt.requests, r2)
+	rt.mu.Unlock()
 
 	for _, m := range rt.matchers {
 		match := true
@@ -53,8 +58,12 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if match {
+			m.mu.Lock()
 			m.requests = append(m.requests, r2)
+			m.mu.Unlock()
+			rt.mu.RLock()
 			mws := append(rt.middlewares, m.middlewares...)
+			rt.mu.RUnlock()
 			mws.then(m.handler).ServeHTTP(w, r)
 			return
 		}
@@ -104,16 +113,22 @@ func (rt *Router) Match(fn func(r *http.Request) bool) *matcher {
 	m := &matcher{
 		matchFuncs: []matchFunc{fn},
 	}
+	rt.mu.Lock()
 	rt.matchers = append(rt.matchers, m)
+	rt.mu.Unlock()
 	return m
 }
 
 func (m *matcher) Match(fn func(r *http.Request) bool) *matcher {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.matchFuncs = append(m.matchFuncs, fn)
 	return m
 }
 
 func (rt *Router) Method(method string) *matcher {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	fn := methodMatchFunc(method)
 	m := &matcher{
 		matchFuncs: []matchFunc{fn},
@@ -123,12 +138,16 @@ func (rt *Router) Method(method string) *matcher {
 }
 
 func (m *matcher) Method(method string) *matcher {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	fn := methodMatchFunc(method)
 	m.matchFuncs = append(m.matchFuncs, fn)
 	return m
 }
 
 func (rt *Router) Path(path string) *matcher {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	fn := pathMatchFunc(path)
 	m := &matcher{
 		matchFuncs: []matchFunc{fn},
@@ -138,16 +157,22 @@ func (rt *Router) Path(path string) *matcher {
 }
 
 func (m *matcher) Path(path string) *matcher {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	fn := pathMatchFunc(path)
 	m.matchFuncs = append(m.matchFuncs, fn)
 	return m
 }
 
 func (rt *Router) DefaultMiddleware(mw func(next http.HandlerFunc) http.HandlerFunc) {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	rt.middlewares = append(rt.middlewares, mw)
 }
 
 func (rt *Router) DefaultHeader(key, value string) {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	mw := func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Add(key, value)
@@ -158,11 +183,15 @@ func (rt *Router) DefaultHeader(key, value string) {
 }
 
 func (m *matcher) Middleware(mw func(next http.HandlerFunc) http.HandlerFunc) *matcher {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.middlewares = append(m.middlewares, mw)
 	return m
 }
 
 func (m *matcher) Header(key, value string) *matcher {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	mw := func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Add(key, value)
@@ -191,10 +220,14 @@ func (m *matcher) ResponseString(status int, body string) {
 }
 
 func (rt *Router) Requests() []*http.Request {
+	rt.mu.RLock()
+	defer rt.mu.RUnlock()
 	return rt.requests
 }
 
 func (m *matcher) Requests() []*http.Request {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.requests
 }
 
