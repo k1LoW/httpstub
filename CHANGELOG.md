@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.3.1](https://github.com/k1LoW/httpstub/compare/v0.3.0...v0.3.1) (2022-06-01)
+
+* Fix race [#5](https://github.com/k1LoW/httpstub/pull/5) ([k1LoW](https://github.com/k1LoW))
+
 ## [v0.3.0](https://github.com/k1LoW/httpstub/compare/v0.2.0...v0.3.0) (2022-05-18)
 
 * `router` to `Router` [#4](https://github.com/k1LoW/httpstub/pull/4) ([k1LoW](https://github.com/k1LoW))
