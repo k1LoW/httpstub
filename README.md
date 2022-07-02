@@ -47,16 +47,18 @@ func TestStub(t *testing.T) {
 or use `NewServer(t *testing.T)` (is syntax sugar)
 
 ``` go
-package httpstub
+package myapp
 
 import (
 	"io"
 	"net/http"
 	"testing"
+
+    "github.com/k1LoW/httpstub"
 )
 
-func TestStub(t *testing.T) {
-	ts := NewServer(t)
+func TestGet(t *testing.T) {
+	ts := httpstub.NewServer(t)
 	t.Cleanup(func() {
 		ts.Close()
 	})
