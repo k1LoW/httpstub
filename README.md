@@ -5,16 +5,18 @@ httpstub provides router ( `http.Handler` ), server ( `*httptest.Server` ) and c
 ## Usage
 
 ``` go
-package httpstub
+package myapp
 
 import (
 	"io"
 	"net/http"
 	"testing"
+
+	"github.com/k1LoW/httpstub"
 )
 
-func TestStub(t *testing.T) {
-	r := NewRouter(t)
+func TestGet(t *testing.T) {
+	r := httpstub.NewRouter(t)
 	r.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
 	ts := r.Server()
 	t.Cleanup(func() {
@@ -54,7 +56,7 @@ import (
 	"net/http"
 	"testing"
 
-    "github.com/k1LoW/httpstub"
+	"github.com/k1LoW/httpstub"
 )
 
 func TestGet(t *testing.T) {
