@@ -86,7 +86,7 @@ func NewServer(t *testing.T) *Router {
 	return rt
 }
 
-// Client returns *http.Client which requests *httptest.Serer.
+// Client returns *http.Client which requests *httptest.Server.
 func (rt *Router) Client() *http.Client {
 	if rt.server == nil {
 		rt.t.Error("server is not started yet")
