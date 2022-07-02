@@ -114,6 +114,7 @@ func (rt *Router) Close() {
 	rt.server.Close()
 }
 
+// Match create request matcher with matchFunc (func(r *http.Request) bool).
 func (rt *Router) Match(fn func(r *http.Request) bool) *matcher {
 	m := &matcher{
 		matchFuncs: []matchFunc{fn},
@@ -124,6 +125,7 @@ func (rt *Router) Match(fn func(r *http.Request) bool) *matcher {
 	return m
 }
 
+// Match append matchFunc (func(r *http.Request) bool) to request matcher.
 func (m *matcher) Match(fn func(r *http.Request) bool) *matcher {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -131,6 +133,7 @@ func (m *matcher) Match(fn func(r *http.Request) bool) *matcher {
 	return m
 }
 
+// Method create request matcher using method.
 func (rt *Router) Method(method string) *matcher {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
@@ -142,6 +145,7 @@ func (rt *Router) Method(method string) *matcher {
 	return m
 }
 
+// Method append matcher using method to request matcher.
 func (m *matcher) Method(method string) *matcher {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -150,6 +154,7 @@ func (m *matcher) Method(method string) *matcher {
 	return m
 }
 
+// Path create request matcher using path.
 func (rt *Router) Path(path string) *matcher {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
@@ -161,6 +166,7 @@ func (rt *Router) Path(path string) *matcher {
 	return m
 }
 
+// Path append matcher using path to request matcher.
 func (m *matcher) Path(path string) *matcher {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -169,12 +175,14 @@ func (m *matcher) Path(path string) *matcher {
 	return m
 }
 
+// DefaultMiddleware append default middleware.
 func (rt *Router) DefaultMiddleware(mw func(next http.HandlerFunc) http.HandlerFunc) {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
 	rt.middlewares = append(rt.middlewares, mw)
 }
 
+// DefaultHeader append default middleware which append header.
 func (rt *Router) DefaultHeader(key, value string) {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
@@ -187,6 +195,7 @@ func (rt *Router) DefaultHeader(key, value string) {
 	rt.middlewares = append(rt.middlewares, mw)
 }
 
+// Middleware append middleware to matcher.
 func (m *matcher) Middleware(mw func(next http.HandlerFunc) http.HandlerFunc) *matcher {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -194,6 +203,7 @@ func (m *matcher) Middleware(mw func(next http.HandlerFunc) http.HandlerFunc) *m
 	return m
 }
 
+// Header append middleware which append header to matcher.
 func (m *matcher) Header(key, value string) *matcher {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -207,10 +217,12 @@ func (m *matcher) Header(key, value string) *matcher {
 	return m
 }
 
+// Handler set hander to matcher.
 func (m *matcher) Handler(fn func(w http.ResponseWriter, r *http.Request)) {
 	m.handler = http.HandlerFunc(fn)
 }
 
+// Response set hander which return response to matcher.
 func (m *matcher) Response(status int, body []byte) {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(status)
@@ -219,17 +231,20 @@ func (m *matcher) Response(status int, body []byte) {
 	m.handler = http.HandlerFunc(fn)
 }
 
+// ResponseString set hander which return response to matcher.
 func (m *matcher) ResponseString(status int, body string) {
 	b := []byte(body)
 	m.Response(status, b)
 }
 
+// Requests returns []*http.Request received by router.
 func (rt *Router) Requests() []*http.Request {
 	rt.mu.RLock()
 	defer rt.mu.RUnlock()
 	return rt.requests
 }
 
+// Requests returns []*http.Request received by matcher.
 func (m *matcher) Requests() []*http.Request {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
