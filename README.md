@@ -2,6 +2,8 @@
 
 httpstub provides router ( `http.Handler` ), server ( `*httptest.Server` ) and client ( `*http.Client` ) for stubbing, for testing in Go.
 
+There is an gRPC version stubbing tool with the same design concept, [grpcstub](https://github.com/k1LoW/grpcstub).
+
 ## Usage
 
 ``` go
