@@ -72,11 +72,13 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rt.t.Errorf("httpstub error: request did not match\n---REQUEST START---\n%s\n---REQUEST END---\n", string(dump))
 }
 
+// NewRouter returns a new router with methods for stubbing.
 func NewRouter(t *testing.T) *Router {
 	t.Helper()
 	return &Router{t: t}
 }
 
+// NewServer returns a new router including *httptest.Server.
 func NewServer(t *testing.T) *Router {
 	t.Helper()
 	rt := &Router{t: t}
@@ -84,6 +86,7 @@ func NewServer(t *testing.T) *Router {
 	return rt
 }
 
+// Client returns *http.Client which requests *httptest.Serer.
 func (rt *Router) Client() *http.Client {
 	if rt.server == nil {
 		rt.t.Error("server is not started yet")
@@ -92,6 +95,7 @@ func (rt *Router) Client() *http.Client {
 	return rt.server.Client()
 }
 
+// Server returns *httptest.Server with *Router set.
 func (rt *Router) Server() *httptest.Server {
 	if rt.server == nil {
 		rt.server = httptest.NewServer(rt)
@@ -101,6 +105,7 @@ func (rt *Router) Server() *httptest.Server {
 	return rt.server
 }
 
+// Close shuts down *httptest.Server
 func (rt *Router) Close() {
 	if rt.server == nil {
 		rt.t.Error("server is not started yet")

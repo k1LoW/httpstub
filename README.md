@@ -1,4 +1,4 @@
-# httpstub
+# httpstub [![Go Reference](https://pkg.go.dev/badge/github.com/k1LoW/httpstub.svg)](https://pkg.go.dev/github.com/k1LoW/httpstub)
 
 httpstub provides router ( `http.Handler` ), server ( `*httptest.Server` ) and client ( `*http.Client` ) for stubbing, for testing in Go.
 
