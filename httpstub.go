@@ -114,8 +114,8 @@ func (rt *Router) Match(fn func(r *http.Request) bool) *matcher {
 		matchFuncs: []matchFunc{fn},
 	}
 	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	rt.matchers = append(rt.matchers, m)
-	rt.mu.Unlock()
 	return m
 }
 
