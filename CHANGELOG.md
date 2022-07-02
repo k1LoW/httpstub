@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.3.2](https://github.com/k1LoW/httpstub/compare/v0.3.1...v0.3.2) (2022-07-02)
+
+
 ## [v0.3.1](https://github.com/k1LoW/httpstub/compare/v0.3.0...v0.3.1) (2022-06-01)
 
 * Fix race [#5](https://github.com/k1LoW/httpstub/pull/5) ([k1LoW](https://github.com/k1LoW))
