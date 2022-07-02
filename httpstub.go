@@ -203,7 +203,7 @@ func (m *matcher) Middleware(mw func(next http.HandlerFunc) http.HandlerFunc) *m
 	return m
 }
 
-// Header append middleware which append header to matcher.
+// Header append middleware which append header to response.
 func (m *matcher) Header(key, value string) *matcher {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -217,12 +217,12 @@ func (m *matcher) Header(key, value string) *matcher {
 	return m
 }
 
-// Handler set hander to matcher.
+// Handler set hander.
 func (m *matcher) Handler(fn func(w http.ResponseWriter, r *http.Request)) {
 	m.handler = http.HandlerFunc(fn)
 }
 
-// Response set hander which return response to matcher.
+// Response set hander which return response.
 func (m *matcher) Response(status int, body []byte) {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(status)
@@ -231,7 +231,7 @@ func (m *matcher) Response(status int, body []byte) {
 	m.handler = http.HandlerFunc(fn)
 }
 
-// ResponseString set hander which return response to matcher.
+// ResponseString set hander which return response.
 func (m *matcher) ResponseString(status int, body string) {
 	b := []byte(body)
 	m.Response(status, b)
