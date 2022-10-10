@@ -18,6 +18,49 @@ import (
 )
 
 func TestGet(t *testing.T) {
+	ts := httpstub.NewServer(t)
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	ts.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
+	tc := ts.Client()
+
+	res, err := tc.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := string(body)
+	want := `{"name":"alice"}`
+	if got != want {
+		t.Errorf("got %v\nwant %v", got, want)
+	}
+	if len(ts.Requests()) != 1 {
+		t.Errorf("got %v\nwant %v", len(ts.Requests()), 1)
+	}
+}
+```
+
+or
+
+``` go
+package myapp
+
+import (
+	"io"
+	"net/http"
+	"testing"
+
+	"github.com/k1LoW/httpstub"
+)
+
+func TestGet(t *testing.T) {
 	r := httpstub.NewRouter(t)
 	r.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
 	ts := r.Server()
@@ -44,49 +87,6 @@ func TestGet(t *testing.T) {
 	}
 	if len(r.Requests()) != 1 {
 		t.Errorf("got %v\nwant %v", len(r.Requests()), 1)
-	}
-}
-```
-
-or use `NewServer(t *testing.T)` (is syntax sugar)
-
-``` go
-package myapp
-
-import (
-	"io"
-	"net/http"
-	"testing"
-
-	"github.com/k1LoW/httpstub"
-)
-
-func TestGet(t *testing.T) {
-	ts := httpstub.NewServer(t)
-	t.Cleanup(func() {
-		ts.Close()
-	})
-	ts.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
-	tc := ts.Client()
-
-	res, err := tc.Get("https://example.com/api/v1/users/1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		res.Body.Close()
-	})
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := string(body)
-	want := `{"name":"alice"}`
-	if got != want {
-		t.Errorf("got %v\nwant %v", got, want)
-	}
-	if len(ts.Requests()) != 1 {
-		t.Errorf("got %v\nwant %v", len(ts.Requests()), 1)
 	}
 }
 ```
