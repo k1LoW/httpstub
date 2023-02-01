@@ -291,3 +291,46 @@ func TestRequests(t *testing.T) {
 		t.Errorf("got %v\nwant %v", len(m.Requests()), 1)
 	}
 }
+
+func TestTLSServer(t *testing.T) {
+	r := NewRouter(t)
+	r.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
+	ts := r.TLSServer()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+	res, err := tc.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	{
+		got := res.StatusCode
+		want := http.StatusOK
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+	{
+		got := res.Header.Get("Content-Type")
+		want := "application/json"
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+	{
+		got := string(body)
+		want := `{"name":"alice"}`
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+}

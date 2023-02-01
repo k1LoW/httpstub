@@ -86,6 +86,14 @@ func NewServer(t *testing.T) *Router {
 	return rt
 }
 
+// NewTLSServer returns a new router including TLS *httptest.Server.
+func NewTLSServer(t *testing.T) *Router {
+	t.Helper()
+	rt := &Router{t: t}
+	_ = rt.TLSServer()
+	return rt
+}
+
 // Client returns *http.Client which requests *httptest.Server.
 func (rt *Router) Client() *http.Client {
 	if rt.server == nil {
@@ -101,7 +109,19 @@ func (rt *Router) Server() *httptest.Server {
 		rt.server = httptest.NewServer(rt)
 	}
 	client := rt.server.Client()
-	client.Transport = newTransport(rt.server.URL)
+	tp := client.Transport.(*http.Transport)
+	client.Transport = newTransport(rt.server.URL, tp)
+	return rt.server
+}
+
+// TLSServer returns TLS *httptest.Server with *Router set.
+func (rt *Router) TLSServer() *httptest.Server {
+	if rt.server == nil {
+		rt.server = httptest.NewTLSServer(rt)
+	}
+	client := rt.server.Client()
+	tp := client.Transport.(*http.Transport)
+	client.Transport = newTransport(rt.server.URL, tp)
 	return rt.server
 }
 
@@ -274,17 +294,19 @@ func pathMatchFunc(path string) matchFunc {
 
 type transport struct {
 	URL *url.URL
+	tp  *http.Transport
 }
 
-func newTransport(rawURL string) http.RoundTripper {
+func newTransport(rawURL string, tp *http.Transport) http.RoundTripper {
 	u, _ := url.Parse(rawURL)
 	return &transport{
 		URL: u,
+		tp:  tp,
 	}
 }
 
 func (t *transport) transport() http.RoundTripper {
-	return http.DefaultTransport
+	return t.tp
 }
 
 func (t *transport) CancelRequest(r *http.Request) {
