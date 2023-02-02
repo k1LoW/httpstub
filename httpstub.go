@@ -122,39 +122,40 @@ func (rt *Router) Client() *http.Client {
 
 // Server returns *httptest.Server with *Router set.
 func (rt *Router) Server() *httptest.Server {
-	if rt.server == nil {
-		if rt.useTLS {
-			rt.server = httptest.NewUnstartedServer(rt)
-			if len(rt.cert) > 0 && len(rt.key) > 0 {
-				cert, err := tls.X509KeyPair(rt.cert, rt.key)
-				if err != nil {
-					panic(err)
-				}
-				existingConfig := rt.server.TLS
-				if existingConfig != nil {
-					rt.server.TLS = existingConfig.Clone()
-				} else {
-					rt.server.TLS = new(tls.Config)
-				}
-				rt.server.TLS.Certificates = []tls.Certificate{cert}
+	if rt.server != nil {
+		return rt.server
+	}
+	if rt.useTLS {
+		rt.server = httptest.NewUnstartedServer(rt)
+		if len(rt.cert) > 0 && len(rt.key) > 0 {
+			cert, err := tls.X509KeyPair(rt.cert, rt.key)
+			if err != nil {
+				panic(err)
 			}
-			rt.server.StartTLS()
-			if len(rt.cacert) > 0 {
-				certpool, err := x509.SystemCertPool()
-				if err != nil {
-					// FIXME for Windows
-					// ref: https://github.com/golang/go/issues/18609
-					certpool = x509.NewCertPool()
-				}
-				if !certpool.AppendCertsFromPEM(rt.cacert) {
-					panic("failed to add cacert")
-				}
-				client := rt.server.Client()
-				client.Transport.(*http.Transport).TLSClientConfig.RootCAs = certpool
+			existingConfig := rt.server.TLS
+			if existingConfig != nil {
+				rt.server.TLS = existingConfig.Clone()
+			} else {
+				rt.server.TLS = new(tls.Config)
 			}
-		} else {
-			rt.server = httptest.NewServer(rt)
+			rt.server.TLS.Certificates = []tls.Certificate{cert}
 		}
+		rt.server.StartTLS()
+		if len(rt.cacert) > 0 {
+			certpool, err := x509.SystemCertPool()
+			if err != nil {
+				// FIXME for Windows
+				// ref: https://github.com/golang/go/issues/18609
+				certpool = x509.NewCertPool()
+			}
+			if !certpool.AppendCertsFromPEM(rt.cacert) {
+				panic("failed to add cacert")
+			}
+			client := rt.server.Client()
+			client.Transport.(*http.Transport).TLSClientConfig.RootCAs = certpool
+		}
+	} else {
+		rt.server = httptest.NewServer(rt)
 	}
 	client := rt.server.Client()
 	tp := client.Transport.(*http.Transport)
