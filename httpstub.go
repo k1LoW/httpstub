@@ -142,7 +142,8 @@ func (rt *Router) Server() *httptest.Server {
 			if len(rt.cacert) > 0 {
 				certpool, err := x509.SystemCertPool()
 				if err != nil {
-					// for Windows
+					// FIXME for Windows
+					// ref: https://github.com/golang/go/issues/18609
 					certpool = x509.NewCertPool()
 				}
 				if !certpool.AppendCertsFromPEM(rt.cacert) {
