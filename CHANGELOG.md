@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.4.2](https://github.com/k1LoW/httpstub/compare/v0.4.1...v0.4.2) (2023-02-02)
+
+* Fix Server [#9](https://github.com/k1LoW/httpstub/pull/9) ([k1LoW](https://github.com/k1LoW))
+
 ## [v0.4.1](https://github.com/k1LoW/httpstub/compare/v0.4.0...v0.4.1) (2023-02-02)
 
 * Fix option [#8](https://github.com/k1LoW/httpstub/pull/8) ([k1LoW](https://github.com/k1LoW))
