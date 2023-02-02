@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.4.1](https://github.com/k1LoW/httpstub/compare/v0.4.0...v0.4.1) (2023-02-02)
+
+* Fix option [#8](https://github.com/k1LoW/httpstub/pull/8) ([k1LoW](https://github.com/k1LoW))
+
 ## [v0.4.0](https://github.com/k1LoW/httpstub/compare/v0.3.2...v0.4.0) (2023-02-02)
 
 * Add option `UseTLS` `UseTLSWithCertificates` [#7](https://github.com/k1LoW/httpstub/pull/7) ([k1LoW](https://github.com/k1LoW))
