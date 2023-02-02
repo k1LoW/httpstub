@@ -7,6 +7,7 @@ type config struct {
 
 type Option func(*config) error
 
+// UseTLS enable TLS
 func UseTLS() Option {
 	return func(c *config) error {
 		c.useTLS = true
@@ -14,6 +15,7 @@ func UseTLS() Option {
 	}
 }
 
+// UseTLSWithCertificates enable TLS with certificates
 func UseTLSWithCertificates(cacert, cert, key []byte) Option {
 	return func(c *config) error {
 		c.useTLS = true
