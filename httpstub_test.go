@@ -349,7 +349,7 @@ func TestUseTLSWithCertificates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := NewRouter(t, UseTLSWithCertificates(cacert, cert, key))
+	r := NewRouter(t, UseTLSWithCertificates(cert, key), CACert(cacert))
 	r.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
 	ts := r.Server()
 	t.Cleanup(func() {
