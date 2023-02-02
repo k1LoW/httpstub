@@ -1,1 +1,3 @@
+testdata/*.pem
+testdata/*.srl
 coverage.out
