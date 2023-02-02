@@ -3,6 +3,7 @@ package httpstub
 import (
 	"io"
 	"net/http"
+	"os"
 	"testing"
 )
 
@@ -301,6 +302,61 @@ func TestTLSServer(t *testing.T) {
 	})
 	tc := ts.Client()
 	res, err := tc.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	{
+		got := res.StatusCode
+		want := http.StatusOK
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+	{
+		got := res.Header.Get("Content-Type")
+		want := "application/json"
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+	{
+		got := string(body)
+		want := `{"name":"alice"}`
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+}
+
+func TestUseTLSWithCertificates(t *testing.T) {
+	cacert, err := os.ReadFile("testdata/cacert.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cert, err := os.ReadFile("testdata/cert.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	key, err := os.ReadFile("testdata/key.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := NewRouter(t, UseTLSWithCertificates(cacert, cert, key))
+	r.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
+	ts := r.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+	res, err := tc.Get("http://example.com/api/v1/users/1")
 	if err != nil {
 		t.Fatal(err)
 	}

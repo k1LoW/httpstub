@@ -2,6 +2,8 @@ package httpstub
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -16,12 +18,14 @@ import (
 var _ http.Handler = (*Router)(nil)
 
 type Router struct {
-	matchers    []*matcher
-	server      *httptest.Server
-	middlewares middlewareFuncs
-	requests    []*http.Request
-	t           *testing.T
-	mu          sync.RWMutex
+	matchers          []*matcher
+	server            *httptest.Server
+	middlewares       middlewareFuncs
+	requests          []*http.Request
+	t                 *testing.T
+	useTLS            bool
+	cacert, cert, key []byte
+	mu                sync.RWMutex
 }
 
 type matcher struct {
@@ -73,23 +77,36 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewRouter returns a new router with methods for stubbing.
-func NewRouter(t *testing.T) *Router {
+func NewRouter(t *testing.T, opts ...Option) *Router {
 	t.Helper()
-	return &Router{t: t}
+	c := &config{}
+	for _, opt := range opts {
+		if err := opt(c); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return &Router{
+		t:      t,
+		useTLS: c.useTLS,
+		cacert: c.cacert,
+		cert:   c.cert,
+		key:    c.key,
+	}
 }
 
 // NewServer returns a new router including *httptest.Server.
-func NewServer(t *testing.T) *Router {
+func NewServer(t *testing.T, opts ...Option) *Router {
 	t.Helper()
-	rt := &Router{t: t}
+	rt := NewRouter(t, opts...)
 	_ = rt.Server()
 	return rt
 }
 
 // NewTLSServer returns a new router including TLS *httptest.Server.
-func NewTLSServer(t *testing.T) *Router {
+func NewTLSServer(t *testing.T, opts ...Option) *Router {
 	t.Helper()
-	rt := &Router{t: t}
+	rt := NewRouter(t, opts...)
+	rt.useTLS = true
 	_ = rt.TLSServer()
 	return rt
 }
@@ -106,7 +123,37 @@ func (rt *Router) Client() *http.Client {
 // Server returns *httptest.Server with *Router set.
 func (rt *Router) Server() *httptest.Server {
 	if rt.server == nil {
-		rt.server = httptest.NewServer(rt)
+		if rt.useTLS {
+			rt.server = httptest.NewUnstartedServer(rt)
+			if len(rt.cert) > 0 && len(rt.key) > 0 {
+				cert, err := tls.X509KeyPair(rt.cert, rt.key)
+				if err != nil {
+					panic(err)
+				}
+				existingConfig := rt.server.TLS
+				if existingConfig != nil {
+					rt.server.TLS = existingConfig.Clone()
+				} else {
+					rt.server.TLS = new(tls.Config)
+				}
+				rt.server.TLS.Certificates = []tls.Certificate{cert}
+			}
+			rt.server.StartTLS()
+			if len(rt.cacert) > 0 {
+				certpool, err := x509.SystemCertPool()
+				if err != nil {
+					// for Windows
+					certpool = x509.NewCertPool()
+				}
+				if !certpool.AppendCertsFromPEM(rt.cacert) {
+					panic("failed to add cacert")
+				}
+				client := rt.server.Client()
+				client.Transport.(*http.Transport).TLSClientConfig.RootCAs = certpool
+			}
+		} else {
+			rt.server = httptest.NewServer(rt)
+		}
 	}
 	client := rt.server.Client()
 	tp := client.Transport.(*http.Transport)
@@ -116,13 +163,8 @@ func (rt *Router) Server() *httptest.Server {
 
 // TLSServer returns TLS *httptest.Server with *Router set.
 func (rt *Router) TLSServer() *httptest.Server {
-	if rt.server == nil {
-		rt.server = httptest.NewTLSServer(rt)
-	}
-	client := rt.server.Client()
-	tp := client.Transport.(*http.Transport)
-	client.Transport = newTransport(rt.server.URL, tp)
-	return rt.server
+	rt.useTLS = true
+	return rt.Server()
 }
 
 // Close shuts down *httptest.Server
