@@ -15,11 +15,27 @@ func UseTLS() Option {
 	}
 }
 
-// UseTLSWithCertificates enable TLS with certificates
-func UseTLSWithCertificates(cacert, cert, key []byte) Option {
+// Certificates set certificates ( cert, key )
+func Certificates(cert, key []byte) Option {
+	return func(c *config) error {
+		c.cert = cert
+		c.key = key
+		return nil
+	}
+}
+
+// CACert set CA certificate
+func CACert(cacert []byte) Option {
+	return func(c *config) error {
+		c.cacert = cacert
+		return nil
+	}
+}
+
+// UseTLSWithCertificates enable TLS with certificates ( cert, key )
+func UseTLSWithCertificates(cert, key []byte) Option {
 	return func(c *config) error {
 		c.useTLS = true
-		c.cacert = cacert
 		c.cert = cert
 		c.key = key
 		return nil
