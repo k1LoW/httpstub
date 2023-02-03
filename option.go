@@ -1,8 +1,9 @@
 package httpstub
 
 type config struct {
-	useTLS            bool
-	cacert, cert, key []byte
+	useTLS                              bool
+	cacert, cert, key                   []byte
+	clientCacert, clientCert, clientKey []byte
 }
 
 type Option func(*config) error
@@ -24,7 +25,7 @@ func Certificates(cert, key []byte) Option {
 	}
 }
 
-// CACert set CA certificate
+// CACert set CA
 func CACert(cacert []byte) Option {
 	return func(c *config) error {
 		c.cacert = cacert
@@ -38,6 +39,23 @@ func UseTLSWithCertificates(cert, key []byte) Option {
 		c.useTLS = true
 		c.cert = cert
 		c.key = key
+		return nil
+	}
+}
+
+// ClientCertificates set client certificates ( cert, key )
+func ClientCertificates(cert, key []byte) Option {
+	return func(c *config) error {
+		c.clientCert = cert
+		c.clientKey = key
+		return nil
+	}
+}
+
+// ClientCACert set client CA
+func ClientCACert(cacert []byte) Option {
+	return func(c *config) error {
+		c.clientCacert = cacert
 		return nil
 	}
 }

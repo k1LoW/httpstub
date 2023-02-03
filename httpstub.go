@@ -18,14 +18,15 @@ import (
 var _ http.Handler = (*Router)(nil)
 
 type Router struct {
-	matchers          []*matcher
-	server            *httptest.Server
-	middlewares       middlewareFuncs
-	requests          []*http.Request
-	t                 *testing.T
-	useTLS            bool
-	cacert, cert, key []byte
-	mu                sync.RWMutex
+	matchers                            []*matcher
+	server                              *httptest.Server
+	middlewares                         middlewareFuncs
+	requests                            []*http.Request
+	t                                   *testing.T
+	useTLS                              bool
+	cacert, cert, key                   []byte
+	clientCacert, clientCert, clientKey []byte
+	mu                                  sync.RWMutex
 }
 
 type matcher struct {
@@ -86,11 +87,14 @@ func NewRouter(t *testing.T, opts ...Option) *Router {
 		}
 	}
 	return &Router{
-		t:      t,
-		useTLS: c.useTLS,
-		cacert: c.cacert,
-		cert:   c.cert,
-		key:    c.key,
+		t:            t,
+		useTLS:       c.useTLS,
+		cacert:       c.cacert,
+		cert:         c.cert,
+		key:          c.key,
+		clientCacert: c.clientCacert,
+		clientCert:   c.clientCert,
+		clientKey:    c.clientKey,
 	}
 }
 
@@ -127,7 +131,9 @@ func (rt *Router) Server() *httptest.Server {
 	}
 	if rt.useTLS {
 		rt.server = httptest.NewUnstartedServer(rt)
-		if len(rt.cert) > 0 && len(rt.key) > 0 {
+
+		// server certificates
+		if rt.cert != nil && rt.key != nil {
 			cert, err := tls.X509KeyPair(rt.cert, rt.key)
 			if err != nil {
 				panic(err)
@@ -140,8 +146,31 @@ func (rt *Router) Server() *httptest.Server {
 			}
 			rt.server.TLS.Certificates = []tls.Certificate{cert}
 		}
+		// client CA
+		if rt.clientCacert != nil {
+			certpool, err := x509.SystemCertPool()
+			if err != nil {
+				// FIXME for Windows
+				// ref: https://github.com/golang/go/issues/18609
+				certpool = x509.NewCertPool()
+			}
+			if !certpool.AppendCertsFromPEM(rt.clientCacert) {
+				panic("failed to add cacert")
+			}
+			existingConfig := rt.server.TLS
+			if existingConfig != nil {
+				rt.server.TLS = existingConfig.Clone()
+			} else {
+				rt.server.TLS = new(tls.Config)
+			}
+			rt.server.TLS.ClientCAs = certpool
+			rt.server.TLS.ClientAuth = tls.RequireAndVerifyClientCert
+		}
+
 		rt.server.StartTLS()
-		if len(rt.cacert) > 0 {
+
+		// server CA
+		if rt.cacert != nil {
 			certpool, err := x509.SystemCertPool()
 			if err != nil {
 				// FIXME for Windows
@@ -153,6 +182,15 @@ func (rt *Router) Server() *httptest.Server {
 			}
 			client := rt.server.Client()
 			client.Transport.(*http.Transport).TLSClientConfig.RootCAs = certpool
+		}
+		// client certificates
+		if rt.clientCert != nil && rt.clientKey != nil {
+			cert, err := tls.X509KeyPair(rt.clientCert, rt.clientKey)
+			if err != nil {
+				panic(err)
+			}
+			client := rt.server.Client()
+			client.Transport.(*http.Transport).TLSClientConfig.Certificates = []tls.Certificate{cert}
 		}
 	} else {
 		rt.server = httptest.NewServer(rt)
