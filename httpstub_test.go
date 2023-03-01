@@ -1,6 +1,7 @@
 package httpstub
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -8,9 +9,9 @@ import (
 )
 
 func TestStub(t *testing.T) {
-	r := NewRouter(t)
-	r.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
-	ts := r.Server()
+	rt := NewRouter(t)
+	rt.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
+	ts := rt.Server()
 	t.Cleanup(func() {
 		ts.Close()
 	})
@@ -52,11 +53,11 @@ func TestStub(t *testing.T) {
 }
 
 func TestRouterMatch(t *testing.T) {
-	r := NewRouter(t)
-	r.Match(func(r *http.Request) bool {
+	rt := NewRouter(t)
+	rt.Match(func(r *http.Request) bool {
 		return r.Method == http.MethodGet
 	}).Response(http.StatusAccepted, []byte(`{"message":"accepted"}`))
-	ts := r.Server()
+	ts := rt.Server()
 	t.Cleanup(func() {
 		ts.Close()
 	})
@@ -78,11 +79,11 @@ func TestRouterMatch(t *testing.T) {
 }
 
 func TestMatcherMatch(t *testing.T) {
-	r := NewRouter(t)
-	r.Path("/api/v1/users/1").Match(func(r *http.Request) bool {
+	rt := NewRouter(t)
+	rt.Path("/api/v1/users/1").Match(func(r *http.Request) bool {
 		return r.Method == http.MethodGet
 	}).ResponseString(http.StatusAccepted, `{"message":"accepted"}`)
-	ts := r.Server()
+	ts := rt.Server()
 	t.Cleanup(func() {
 		ts.Close()
 	})
@@ -104,9 +105,9 @@ func TestMatcherMatch(t *testing.T) {
 }
 
 func TestMatcherMethod(t *testing.T) {
-	r := NewRouter(t)
-	r.Path("/api/v1/users/1").Method(http.MethodGet).ResponseString(http.StatusAccepted, `{"message":"accepted"}`)
-	ts := r.Server()
+	rt := NewRouter(t)
+	rt.Path("/api/v1/users/1").Method(http.MethodGet).ResponseString(http.StatusAccepted, `{"message":"accepted"}`)
+	ts := rt.Server()
 	t.Cleanup(func() {
 		ts.Close()
 	})
@@ -128,10 +129,10 @@ func TestMatcherMethod(t *testing.T) {
 }
 
 func TestRouterDefaultHeader(t *testing.T) {
-	r := NewRouter(t)
-	r.DefaultHeader("Content-Type", "application/json")
-	r.Method(http.MethodGet).Path("/api/v1/users/1").ResponseString(http.StatusAccepted, `{"message":"accepted"}`)
-	ts := r.Server()
+	rt := NewRouter(t)
+	rt.DefaultHeader("Content-Type", "application/json")
+	rt.Method(http.MethodGet).Path("/api/v1/users/1").ResponseString(http.StatusAccepted, `{"message":"accepted"}`)
+	ts := rt.Server()
 	t.Cleanup(func() {
 		ts.Close()
 	})
@@ -153,16 +154,16 @@ func TestRouterDefaultHeader(t *testing.T) {
 }
 
 func TestRouterDefaultMiddleware(t *testing.T) {
-	r := NewRouter(t)
-	r.DefaultMiddleware(func(next http.HandlerFunc) http.HandlerFunc {
+	rt := NewRouter(t)
+	rt.DefaultMiddleware(func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			// override
 			w.WriteHeader(http.StatusBadRequest)
 			_, _ = w.Write([]byte("{}"))
 		}
 	})
-	r.Method(http.MethodGet).Path("/api/v1/users/1").ResponseString(http.StatusAccepted, `{"message":"accepted"}`)
-	ts := r.Server()
+	rt.Method(http.MethodGet).Path("/api/v1/users/1").ResponseString(http.StatusAccepted, `{"message":"accepted"}`)
+	ts := rt.Server()
 	t.Cleanup(func() {
 		ts.Close()
 	})
@@ -184,15 +185,15 @@ func TestRouterDefaultMiddleware(t *testing.T) {
 }
 
 func TestMatcherMiddleware(t *testing.T) {
-	r := NewRouter(t)
-	r.Method(http.MethodGet).Path("/api/v1/users/1").Middleware(func(next http.HandlerFunc) http.HandlerFunc {
+	rt := NewRouter(t)
+	rt.Method(http.MethodGet).Path("/api/v1/users/1").Middleware(func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			// override
 			w.WriteHeader(http.StatusForbidden)
 			_, _ = w.Write([]byte("{}"))
 		}
 	}).ResponseString(http.StatusAccepted, `{"message":"accepted"}`)
-	ts := r.Server()
+	ts := rt.Server()
 	t.Cleanup(func() {
 		ts.Close()
 	})
@@ -214,12 +215,12 @@ func TestMatcherMiddleware(t *testing.T) {
 }
 
 func TestMatcherHander(t *testing.T) {
-	r := NewRouter(t)
-	r.Path("/api/v1/users/1").Method(http.MethodGet).Handler(func(w http.ResponseWriter, r *http.Request) {
+	rt := NewRouter(t)
+	rt.Path("/api/v1/users/1").Method(http.MethodGet).Handler(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusAccepted)
 		_, _ = w.Write([]byte(`{"message":"accepted"}`))
 	})
-	ts := r.Server()
+	ts := rt.Server()
 	t.Cleanup(func() {
 		ts.Close()
 	})
@@ -268,11 +269,11 @@ func TestNewServer(t *testing.T) {
 }
 
 func TestRequests(t *testing.T) {
-	r := NewRouter(t)
-	m := r.Method(http.MethodGet).Path("/api/v1/users/1")
+	rt := NewRouter(t)
+	m := rt.Method(http.MethodGet).Path("/api/v1/users/1")
 	m.Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
-	r.Method(http.MethodGet).Path("/api/v1/projects").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"projects": []}`)
-	ts := r.Server()
+	rt.Method(http.MethodGet).Path("/api/v1/projects").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"projects": []}`)
+	ts := rt.Server()
 	t.Cleanup(func() {
 		ts.Close()
 	})
@@ -285,18 +286,18 @@ func TestRequests(t *testing.T) {
 	t.Cleanup(func() {
 		res.Body.Close()
 	})
-	if len(r.Requests()) != 1 {
-		t.Errorf("got %v\nwant %v", len(r.Requests()), 1)
+	if want := 1; len(rt.Requests()) != want {
+		t.Errorf("got %v\nwant %v", len(rt.Requests()), want)
 	}
-	if len(m.Requests()) != 1 {
-		t.Errorf("got %v\nwant %v", len(m.Requests()), 1)
+	if want := 1; len(m.Requests()) != want {
+		t.Errorf("got %v\nwant %v", len(m.Requests()), want)
 	}
 }
 
 func TestTLSServer(t *testing.T) {
-	r := NewRouter(t)
-	r.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
-	ts := r.TLSServer()
+	rt := NewRouter(t)
+	rt.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
+	ts := rt.TLSServer()
 	t.Cleanup(func() {
 		ts.Close()
 	})
@@ -349,9 +350,9 @@ func TestUseTLSWithCertificates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := NewRouter(t, UseTLSWithCertificates(cert, key), CACert(cacert))
-	r.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
-	ts := r.Server()
+	rt := NewRouter(t, UseTLSWithCertificates(cert, key), CACert(cacert))
+	rt.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
+	ts := rt.Server()
 	t.Cleanup(func() {
 		ts.Close()
 	})
@@ -404,9 +405,9 @@ func TestClientCertififaces(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := NewRouter(t, UseTLS(), ClientCACert(clientCacert), ClientCertificates(clientCert, clientKey))
-	r.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
-	ts := r.Server()
+	rt := NewRouter(t, UseTLS(), ClientCACert(clientCacert), ClientCertificates(clientCert, clientKey))
+	rt.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
+	ts := rt.Server()
 	t.Cleanup(func() {
 		ts.Close()
 	})
@@ -443,5 +444,83 @@ func TestClientCertififaces(t *testing.T) {
 		if got != want {
 			t.Errorf("got %v\nwant %v", got, want)
 		}
+	}
+}
+
+func TestClearRequests(t *testing.T) {
+	tests := []struct {
+		clearFunc func(*Router, *matcher)
+		wantFunc  func(*testing.T, *Router, *matcher)
+	}{
+		{
+			func(rt *Router, m *matcher) {
+			},
+			func(t *testing.T, rt *Router, m *matcher) {
+				if want := 2; len(rt.Requests()) != want {
+					t.Errorf("got %v\nwant %v", len(rt.Requests()), want)
+				}
+				if want := 1; len(m.Requests()) != want {
+					t.Errorf("got %v\nwant %v", len(m.Requests()), want)
+				}
+			},
+		},
+		{
+			func(rt *Router, m *matcher) {
+				rt.ClearRequests()
+			},
+			func(t *testing.T, rt *Router, m *matcher) {
+				if want := 0; len(rt.Requests()) != want {
+					t.Errorf("got %v\nwant %v", len(rt.Requests()), want)
+				}
+				if want := 0; len(m.Requests()) != want {
+					t.Errorf("got %v\nwant %v", len(m.Requests()), want)
+				}
+			},
+		},
+		{
+			func(rt *Router, m *matcher) {
+				m.ClearRequests()
+			},
+			func(t *testing.T, rt *Router, m *matcher) {
+				if want := 1; len(rt.Requests()) != want {
+					t.Errorf("got %v\nwant %v", len(rt.Requests()), want)
+				}
+				if want := 0; len(m.Requests()) != want {
+					t.Errorf("got %v\nwant %v", len(m.Requests()), want)
+				}
+			},
+		},
+	}
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			rt := NewRouter(t)
+			m := rt.Method(http.MethodGet).Path("/api/v1/users/1")
+			m.Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
+			m2 := rt.Method(http.MethodGet).Path("/api/v1/users/2")
+			m2.Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"bob"}`)
+			rt.Method(http.MethodGet).Path("/api/v1/projects").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"projects": []}`)
+			ts := rt.Server()
+			t.Cleanup(func() {
+				ts.Close()
+			})
+			tc := ts.Client()
+
+			res, err := tc.Get("https://example.com/api/v1/users/1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				res.Body.Close()
+			})
+			res2, err := tc.Get("https://example.com/api/v1/users/2")
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				res2.Body.Close()
+			})
+			tt.clearFunc(rt, m)
+			tt.wantFunc(t, rt, m)
+		})
 	}
 }
