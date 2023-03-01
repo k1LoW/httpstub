@@ -34,6 +34,7 @@ type matcher struct {
 	handler     http.HandlerFunc
 	middlewares middlewareFuncs
 	requests    []*http.Request
+	router      *Router
 	mu          sync.RWMutex
 }
 
@@ -220,6 +221,7 @@ func (rt *Router) Close() {
 func (rt *Router) Match(fn func(r *http.Request) bool) *matcher {
 	m := &matcher{
 		matchFuncs: []matchFunc{fn},
+		router:     rt,
 	}
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
@@ -242,6 +244,7 @@ func (rt *Router) Method(method string) *matcher {
 	fn := methodMatchFunc(method)
 	m := &matcher{
 		matchFuncs: []matchFunc{fn},
+		router:     rt,
 	}
 	rt.matchers = append(rt.matchers, m)
 	return m
@@ -351,6 +354,34 @@ func (m *matcher) Requests() []*http.Request {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.requests
+}
+
+// ClearRequests clear []*http.Request received by router.
+func (rt *Router) ClearRequests() {
+	rt.mu.RLock()
+	defer rt.mu.RUnlock()
+	rt.requests = nil
+	for _, m := range rt.matchers {
+		m.ClearRequests()
+	}
+}
+
+// ClearRequests returns []*http.Request received by matcher.
+func (m *matcher) ClearRequests() {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	requests := []*http.Request{}
+L:
+	for _, r := range m.router.requests {
+		for _, mr := range m.requests {
+			if r == mr {
+				continue L
+			}
+		}
+		requests = append(requests, r)
+	}
+	m.router.requests = requests
+	m.requests = nil
 }
 
 func cloneReq(r *http.Request) *http.Request {
