@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.7.0](https://github.com/k1LoW/httpstub/compare/v0.6.0...v0.7.0) (2023-03-17)
+
+* Add utility methods that embedds fmt.Sprintf [#12](https://github.com/k1LoW/httpstub/pull/12) ([k1LoW](https://github.com/k1LoW))
+
 ## [v0.6.0](https://github.com/k1LoW/httpstub/compare/v0.5.0...v0.6.0) (2023-03-01)
 
 * Add ClearRequests() for clearing recieved requests [#11](https://github.com/k1LoW/httpstub/pull/11) ([k1LoW](https://github.com/k1LoW))
