@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -280,6 +281,16 @@ func (m *matcher) Path(path string) *matcher {
 	return m
 }
 
+// Pathf create request matcher using sprintf-ed path.
+func (rt *Router) Pathf(format string, a ...any) *matcher {
+	return rt.Path(fmt.Sprintf(format, a...))
+}
+
+// Pathf append matcher using sprintf-ed path to request matcher.
+func (m *matcher) Pathf(format string, a ...any) *matcher {
+	return m.Path(fmt.Sprintf(format, a...))
+}
+
 // DefaultMiddleware append default middleware.
 func (rt *Router) DefaultMiddleware(mw func(next http.HandlerFunc) http.HandlerFunc) {
 	rt.mu.Lock()
@@ -322,12 +333,12 @@ func (m *matcher) Header(key, value string) *matcher {
 	return m
 }
 
-// Handler set hander.
+// Handler set handler.
 func (m *matcher) Handler(fn func(w http.ResponseWriter, r *http.Request)) {
 	m.handler = http.HandlerFunc(fn)
 }
 
-// Response set hander which return response.
+// Response set handler which return response (status and body).
 func (m *matcher) Response(status int, body []byte) {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(status)
@@ -336,9 +347,15 @@ func (m *matcher) Response(status int, body []byte) {
 	m.handler = http.HandlerFunc(fn)
 }
 
-// ResponseString set hander which return response.
+// ResponseString set handler which return response (status and string-body).
 func (m *matcher) ResponseString(status int, body string) {
 	b := []byte(body)
+	m.Response(status, b)
+}
+
+// ResponseStringf set handler which return response (status and sprintf-ed-body).
+func (m *matcher) ResponseStringf(status int, format string, a ...any) {
+	b := []byte(fmt.Sprintf(format, a...))
 	m.Response(status, b)
 }
 
