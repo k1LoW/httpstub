@@ -1,6 +1,6 @@
 module github.com/k1LoW/httpstub
 
-go 1.18
+go 1.20
 
 require (
 	github.com/getkin/kin-openapi v0.115.0
