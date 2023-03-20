@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.8.0](https://github.com/k1LoW/httpstub/compare/v0.7.0...v0.8.0) - 2023-03-20
+- Setup tagpr by @k1LoW in https://github.com/k1LoW/httpstub/pull/13
+- Support request/response validation using OpenAPI Spec v3 by @k1LoW in https://github.com/k1LoW/httpstub/pull/15
+
 ## [v0.7.0](https://github.com/k1LoW/httpstub/compare/v0.6.0...v0.7.0) (2023-03-17)
 
 * Add utility methods that embedds fmt.Sprintf [#12](https://github.com/k1LoW/httpstub/pull/12) ([k1LoW](https://github.com/k1LoW))
@@ -43,4 +47,3 @@
 * Add `NewServer(t *testing.T)` [#1](https://github.com/k1LoW/httpstub/pull/1) ([k1LoW](https://github.com/k1LoW))
 
 ## [v0.1.0](https://github.com/k1LoW/httpstub/compare/19c899f43c45...v0.1.0) (2022-05-17)
-
