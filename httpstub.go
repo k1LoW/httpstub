@@ -14,19 +14,32 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/getkin/kin-openapi/openapi3"
 )
 
 var _ http.Handler = (*Router)(nil)
+
+type TB interface {
+	Error(args ...any)
+	Errorf(format string, args ...any)
+	Fatal(args ...any)
+	Fatalf(format string, args ...any)
+	Helper()
+}
 
 type Router struct {
 	matchers                            []*matcher
 	server                              *httptest.Server
 	middlewares                         middlewareFuncs
 	requests                            []*http.Request
-	t                                   *testing.T
+	t                                   TB
 	useTLS                              bool
 	cacert, cert, key                   []byte
 	clientCacert, clientCert, clientKey []byte
+	openApi3Doc                         *openapi3.T
+	skipValidateRequest                 bool
+	skipValidateResponse                bool
 	mu                                  sync.RWMutex
 }
 
@@ -88,7 +101,7 @@ func NewRouter(t *testing.T, opts ...Option) *Router {
 			t.Fatal(err)
 		}
 	}
-	return &Router{
+	rt := &Router{
 		t:            t,
 		useTLS:       c.useTLS,
 		cacert:       c.cacert,
@@ -97,7 +110,12 @@ func NewRouter(t *testing.T, opts ...Option) *Router {
 		clientCacert: c.clientCacert,
 		clientCert:   c.clientCert,
 		clientKey:    c.clientKey,
+		openApi3Doc:  c.openApi3Doc,
 	}
+	if err := rt.setOpenApi3Vaildator(); err != nil {
+		t.Fatal(err)
+	}
+	return rt
 }
 
 // NewServer returns a new router including *httptest.Server.
