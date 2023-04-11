@@ -17,6 +17,26 @@ paths:
                   properties:
                     username:
                       type: string
+              examples:
+                ex1:
+                  value:
+                    - username: alice
+                    - username: bob
+        '404':
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+              examples:
+                ex1:
+                  value:
+                    error: 'Not found'
     post:
       requestBody:
         content:
