@@ -128,6 +128,54 @@ func TestMatcherMethod(t *testing.T) {
 	}
 }
 
+func TestRouterQuery(t *testing.T) {
+	rt := NewRouter(t)
+	rt.Query("page", "3").Response(http.StatusOK, []byte(`{"data": []}`))
+	ts := rt.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+
+	res, err := tc.Get("https://example.com/api/v1/users?page=3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+
+	got := res.StatusCode
+	want := http.StatusOK
+	if got != want {
+		t.Errorf("got %v\nwant %v", got, want)
+	}
+}
+
+func TestMatcherQuery(t *testing.T) {
+	rt := NewRouter(t)
+	rt.Path("/api/v1/users").Query("page", "3").Response(http.StatusOK, []byte(`{"data": []}`))
+	ts := rt.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+
+	res, err := tc.Get("https://example.com/api/v1/users?page=3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+
+	got := res.StatusCode
+	want := http.StatusOK
+	if got != want {
+		t.Errorf("got %v\nwant %v", got, want)
+	}
+}
+
 func TestRouterDefaultHeader(t *testing.T) {
 	rt := NewRouter(t)
 	rt.DefaultHeader("Content-Type", "application/json")

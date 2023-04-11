@@ -309,6 +309,27 @@ func (m *matcher) Pathf(format string, a ...any) *matcher {
 	return m.Path(fmt.Sprintf(format, a...))
 }
 
+// Query create request matcher using query.
+func (rt *Router) Query(key, value string) *matcher {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
+	fn := queryMatchFunc(key, value)
+	m := &matcher{
+		matchFuncs: []matchFunc{fn},
+	}
+	rt.matchers = append(rt.matchers, m)
+	return m
+}
+
+// Query append matcher using query to request matcher.
+func (m *matcher) Query(key, value string) *matcher {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	fn := queryMatchFunc(key, value)
+	m.matchFuncs = append(m.matchFuncs, fn)
+	return m
+}
+
 // DefaultMiddleware append default middleware.
 func (rt *Router) DefaultMiddleware(mw func(next http.HandlerFunc) http.HandlerFunc) {
 	rt.mu.Lock()
@@ -437,6 +458,12 @@ func pathMatchFunc(path string) matchFunc {
 	pathRe := regexp.MustCompile(strings.Replace(path, "/*", "/.*", -1))
 	return func(r *http.Request) bool {
 		return pathRe.MatchString(r.URL.Path)
+	}
+}
+
+func queryMatchFunc(key, value string) matchFunc {
+	return func(r *http.Request) bool {
+		return r.URL.Query().Get(key) == value
 	}
 }
 
