@@ -19,6 +19,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	legacyrouter "github.com/getkin/kin-openapi/routers/legacy"
+	"github.com/minio/pkg/wildcard"
 )
 
 var _ http.Handler = (*Router)(nil)
@@ -401,8 +402,26 @@ func (m *matcher) ResponseStringf(status int, format string, a ...any) {
 	m.Response(status, b)
 }
 
+type responseExampleConfig struct {
+	status string
+}
+
+func newResponseExampleConfig() *responseExampleConfig {
+	return &responseExampleConfig{status: "*"}
+}
+
+type responseExampleOption func(c *responseExampleConfig) error
+
+// Status specify the example response to use by status code
+func Status(pattern string) responseExampleOption {
+	return func(c *responseExampleConfig) error {
+		c.status = pattern
+		return nil
+	}
+}
+
 // ResponseExample set handler which return response using examples of OpenAPI v3 Document
-func (m *matcher) ResponseExample() {
+func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 	if m.router.openApi3Doc == nil {
 		m.router.t.Error("no OpenAPI v3 document is set")
 		return
@@ -411,6 +430,13 @@ func (m *matcher) ResponseExample() {
 	if err != nil {
 		m.router.t.Error(err)
 		return
+	}
+	c := newResponseExampleConfig()
+	for _, opt := range opts {
+		if err := opt(c); err != nil {
+			m.router.t.Error(err)
+			return
+		}
 	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		route, _, err := router.FindRoute(r)
@@ -423,11 +449,17 @@ func (m *matcher) ResponseExample() {
 			m.router.t.Errorf("failed to find route (%v %v) operation of method: %s", route.Method, route.Path, route.Method)
 			return
 		}
-		status, res := one(op.Responses)
+		s, res := matchOne(op.Responses, c.status)
 		if res == nil {
-			m.router.t.Errorf("failed to find route (%v %v) response of status %s", route.Method, route.Path, status)
+			m.router.t.Errorf("failed to find route (%v %v) response of status %s", route.Method, route.Path, c.status)
 			return
 		}
+		status, err := strconv.Atoi(s)
+		if err != nil {
+			m.router.t.Error(err)
+			return
+		}
+
 		mime := r.Header.Get("Content-Type")
 		mt := res.Value.Content.Get(mime)
 		if mt == nil {
@@ -447,12 +479,8 @@ func (m *matcher) ResponseExample() {
 			m.router.t.Errorf("failed to marshal body of route (%v %v %v)", status, route.Method, route.Path)
 			return
 		}
-		i, err := strconv.Atoi(status)
-		if err != nil {
-			m.router.t.Error(err)
-			return
-		}
-		w.WriteHeader(i)
+
+		w.WriteHeader(status)
 		w.Header().Set("Content-Type", mime)
 		_, _ = w.Write(b)
 	}
@@ -460,7 +488,7 @@ func (m *matcher) ResponseExample() {
 }
 
 // ResponseExample set handler which return response using examples of OpenAPI v3 Document
-func (rt *Router) ResponseExample() {
+func (rt *Router) ResponseExample(opts ...responseExampleOption) {
 	m := &matcher{
 		matchFuncs: []matchFunc{func(_ *http.Request) bool { return true }},
 		router:     rt,
@@ -468,7 +496,7 @@ func (rt *Router) ResponseExample() {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
 	rt.matchers = append(rt.matchers, m)
-	m.ResponseExample()
+	m.ResponseExample(opts...)
 }
 
 // Requests returns []*http.Request received by router.
@@ -577,6 +605,19 @@ func (t *transport) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func one[T any](m map[string]*T) (string, *T) {
 	for k, v := range m {
+		return k, v
+	}
+	return "", nil
+}
+
+func matchOne[T any](m map[string]*T, pattern string) (string, *T) {
+	matches := map[string]*T{}
+	for k, v := range m {
+		if wildcard.MatchSimple(pattern, k) {
+			matches[k] = v
+		}
+	}
+	for k, v := range matches {
 		return k, v
 	}
 	return "", nil

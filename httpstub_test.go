@@ -580,10 +580,13 @@ func TestMatcherResponseExample(t *testing.T) {
 	tests := []struct {
 		name    string
 		req     *http.Request
+		status  string
 		wantErr bool
 	}{
-		{"valid req/res", newRequest(t, http.MethodGet, "/users", ""), false},
-		{"invalid req", newRequest(t, http.MethodPost, "/users", `{"invalid": "alice", "req": "passw0rd"}`), true},
+		{"valid req/res", newRequest(t, http.MethodGet, "/users", ""), "*", false},
+		{"valid req/res with status 200", newRequest(t, http.MethodGet, "/users", ""), "200", false},
+		{"valid req/res with status 2*", newRequest(t, http.MethodGet, "/users", ""), "2*", false},
+		{"invalid req", newRequest(t, http.MethodPost, "/users", `{"invalid": "alice", "req": "passw0rd"}`), "*", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -596,7 +599,7 @@ func TestMatcherResponseExample(t *testing.T) {
 			}
 			rt := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
 			rt.t = mockTB
-			rt.Method(http.MethodGet).Path("/users").ResponseExample()
+			rt.Method(http.MethodGet).Path("/users").ResponseExample(Status(tt.status))
 			ts := rt.Server()
 			t.Cleanup(func() {
 				ts.Close()
@@ -613,10 +616,13 @@ func TestRouterResponseExample(t *testing.T) {
 	tests := []struct {
 		name    string
 		req     *http.Request
+		status  string
 		wantErr bool
 	}{
-		{"valid req/res", newRequest(t, http.MethodGet, "/users", ""), false},
-		{"invalid req", newRequest(t, http.MethodPost, "/users", `{"invalid": "alice", "req": "passw0rd"}`), true},
+		{"valid req/res", newRequest(t, http.MethodGet, "/users", ""), "*", false},
+		{"valid req/res with status 200", newRequest(t, http.MethodGet, "/users", ""), "200", false},
+		{"valid req/res with status 2*", newRequest(t, http.MethodGet, "/users", ""), "2*", false},
+		{"invalid req", newRequest(t, http.MethodPost, "/users", `{"invalid": "alice", "req": "passw0rd"}`), "*", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -629,7 +635,7 @@ func TestRouterResponseExample(t *testing.T) {
 			}
 			rt := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
 			rt.t = mockTB
-			rt.ResponseExample()
+			rt.ResponseExample(Status(tt.status))
 			ts := rt.Server()
 			t.Cleanup(func() {
 				ts.Close()
