@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.9.2](https://github.com/k1LoW/httpstub/compare/v0.9.1...v0.9.2) - 2023-04-12
+- Fix handling Content-Type header in ResponseExample by @k1LoW in https://github.com/k1LoW/httpstub/pull/21
+
 ## [v0.9.1](https://github.com/k1LoW/httpstub/compare/v0.9.0...v0.9.1) - 2023-04-12
 - Skip scheme://host:port validation by @k1LoW in https://github.com/k1LoW/httpstub/pull/19
 
