@@ -605,8 +605,16 @@ func TestMatcherResponseExample(t *testing.T) {
 				ts.Close()
 			})
 			tc := ts.Client()
-			if _, err := tc.Do(tt.req); err != nil {
+			res, err := tc.Do(tt.req)
+			if err != nil {
 				t.Error(err)
+			}
+			if !tt.wantErr {
+				got := res.Header.Get("Content-Type")
+				want := "application/json"
+				if got != want {
+					t.Errorf("got %v\nwant %v", got, want)
+				}
 			}
 		})
 	}
@@ -641,8 +649,16 @@ func TestRouterResponseExample(t *testing.T) {
 				ts.Close()
 			})
 			tc := ts.Client()
-			if _, err := tc.Do(tt.req); err != nil {
+			res, err := tc.Do(tt.req)
+			if err != nil {
 				t.Error(err)
+			}
+			if !tt.wantErr {
+				got := res.Header.Get("Content-Type")
+				want := "application/json"
+				if got != want {
+					t.Errorf("got %v\nwant %v", got, want)
+				}
 			}
 		})
 	}
