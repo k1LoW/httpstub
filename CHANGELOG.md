@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.9.1](https://github.com/k1LoW/httpstub/compare/v0.9.0...v0.9.1) - 2023-04-12
+- Skip scheme://host:port validation by @k1LoW in https://github.com/k1LoW/httpstub/pull/19
+
 ## [v0.9.0](https://github.com/k1LoW/httpstub/compare/v0.8.0...v0.9.0) - 2023-04-12
 - Add Query() for query match by @k1LoW in https://github.com/k1LoW/httpstub/pull/16
 - Support response using examples of OpenAPI v3 Document by @k1LoW in https://github.com/k1LoW/httpstub/pull/18
