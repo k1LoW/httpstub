@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
 	legacyrouter "github.com/getkin/kin-openapi/routers/legacy"
@@ -47,13 +48,26 @@ func (rt *Router) setOpenApi3Vaildator() error {
 	if rt.openApi3Doc == nil {
 		return nil
 	}
-	router, err := legacyrouter.NewRouter(rt.openApi3Doc)
-	if err != nil {
-		return err
-	}
 	mw := func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			ctx := context.Background()
+			router, err := legacyrouter.NewRouter(rt.openApi3Doc)
+			if err != nil {
+				rt.t.Error(err)
+			}
+
+			// skip scheme://host:port validation
+			for _, server := range rt.openApi3Doc.Servers {
+				su, err := url.Parse(server.URL)
+				if err != nil {
+					rt.t.Error(err)
+				}
+				su.Host = r.URL.Host
+				su.Opaque = r.URL.Opaque
+				su.Scheme = r.URL.Scheme
+				server.URL = su.String()
+			}
+
 			var reqv *openapi3filter.RequestValidationInput
 			route, pathParams, err := router.FindRoute(r)
 			if err != nil {
