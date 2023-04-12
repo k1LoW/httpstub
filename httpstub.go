@@ -494,8 +494,8 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 			return
 		}
 
-		w.WriteHeader(status)
 		w.Header().Set("Content-Type", mime)
+		w.WriteHeader(status)
 		_, _ = w.Write(b)
 	}
 	m.handler = http.HandlerFunc(fn)
