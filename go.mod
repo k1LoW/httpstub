@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/getkin/kin-openapi v0.115.0
 	github.com/golang/mock v1.6.0
+	github.com/minio/pkg v1.6.5
 )
 
 require (

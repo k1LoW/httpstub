@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"os"
 	"testing"
+
+	"github.com/golang/mock/gomock"
+	mock_httpstub "github.com/k1LoW/httpstub/mock"
 )
 
 func TestStub(t *testing.T) {
@@ -569,6 +572,78 @@ func TestClearRequests(t *testing.T) {
 			})
 			tt.clearFunc(rt, m)
 			tt.wantFunc(t, rt, m)
+		})
+	}
+}
+
+func TestMatcherResponseExample(t *testing.T) {
+	tests := []struct {
+		name    string
+		req     *http.Request
+		status  string
+		wantErr bool
+	}{
+		{"valid req/res", newRequest(t, http.MethodGet, "/users", ""), "*", false},
+		{"valid req/res with status 200", newRequest(t, http.MethodGet, "/users", ""), "200", false},
+		{"valid req/res with status 2*", newRequest(t, http.MethodGet, "/users", ""), "2*", false},
+		{"invalid req", newRequest(t, http.MethodPost, "/users", `{"invalid": "alice", "req": "passw0rd"}`), "*", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockTB := mock_httpstub.NewMockTB(ctrl)
+			mockTB.EXPECT().Helper()
+			if tt.wantErr {
+				mockTB.EXPECT().Errorf(gomock.Any(), gomock.Any())
+			}
+			rt := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
+			rt.t = mockTB
+			rt.Method(http.MethodGet).Path("/users").ResponseExample(Status(tt.status))
+			ts := rt.Server()
+			t.Cleanup(func() {
+				ts.Close()
+			})
+			tc := ts.Client()
+			if _, err := tc.Do(tt.req); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+}
+
+func TestRouterResponseExample(t *testing.T) {
+	tests := []struct {
+		name    string
+		req     *http.Request
+		status  string
+		wantErr bool
+	}{
+		{"valid req/res", newRequest(t, http.MethodGet, "/users", ""), "*", false},
+		{"valid req/res with status 200", newRequest(t, http.MethodGet, "/users", ""), "200", false},
+		{"valid req/res with status 2*", newRequest(t, http.MethodGet, "/users", ""), "2*", false},
+		{"invalid req", newRequest(t, http.MethodPost, "/users", `{"invalid": "alice", "req": "passw0rd"}`), "*", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockTB := mock_httpstub.NewMockTB(ctrl)
+			mockTB.EXPECT().Helper()
+			if tt.wantErr {
+				mockTB.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(3)
+			}
+			rt := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
+			rt.t = mockTB
+			rt.ResponseExample(Status(tt.status))
+			ts := rt.Server()
+			t.Cleanup(func() {
+				ts.Close()
+			})
+			tc := ts.Client()
+			if _, err := tc.Do(tt.req); err != nil {
+				t.Error(err)
+			}
 		})
 	}
 }
