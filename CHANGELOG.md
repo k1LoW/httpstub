@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.9.0](https://github.com/k1LoW/httpstub/compare/v0.8.0...v0.9.0) - 2023-04-12
+- Add Query() for query match by @k1LoW in https://github.com/k1LoW/httpstub/pull/16
+- Support response using examples of OpenAPI v3 Document by @k1LoW in https://github.com/k1LoW/httpstub/pull/18
+
 ## [v0.8.0](https://github.com/k1LoW/httpstub/compare/v0.7.0...v0.8.0) - 2023-03-20
 - Setup tagpr by @k1LoW in https://github.com/k1LoW/httpstub/pull/13
 - Support request/response validation using OpenAPI Spec v3 by @k1LoW in https://github.com/k1LoW/httpstub/pull/15
