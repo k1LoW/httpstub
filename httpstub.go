@@ -426,11 +426,6 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 		m.router.t.Error("no OpenAPI v3 document is set")
 		return
 	}
-	router, err := legacyrouter.NewRouter(m.router.openApi3Doc)
-	if err != nil {
-		m.router.t.Error(err)
-		return
-	}
 	c := newResponseExampleConfig()
 	for _, opt := range opts {
 		if err := opt(c); err != nil {
@@ -439,6 +434,25 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 		}
 	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		router, err := legacyrouter.NewRouter(m.router.openApi3Doc)
+		if err != nil {
+			m.router.t.Error(err)
+			return
+		}
+
+		// skip scheme://host:port validation
+		for _, server := range m.router.openApi3Doc.Servers {
+			su, err := url.Parse(server.URL)
+			if err != nil {
+				m.router.t.Error(err)
+				return
+			}
+			su.Host = r.URL.Host
+			su.Opaque = r.URL.Opaque
+			su.Scheme = r.URL.Scheme
+			server.URL = su.String()
+		}
+
 		route, _, err := router.FindRoute(r)
 		if err != nil {
 			m.router.t.Errorf("failed to find route: %v", err)
