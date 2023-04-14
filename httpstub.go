@@ -487,10 +487,21 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 			return
 		}
 		_, e := one(mt.Examples)
-		b, err := json.Marshal(e.Value.Value)
-		if err != nil {
-			m.router.t.Errorf("failed to marshal body of route (%v %v %v)", status, route.Method, route.Path)
-			return
+		var b []byte
+		switch {
+		case strings.Contains(mime, "text"):
+			s, ok := e.Value.Value.(string)
+			if !ok {
+				m.router.t.Errorf("failed to marshal body of route (%v %v %v)", status, route.Method, route.Path)
+				return
+			}
+			b = []byte(s)
+		default:
+			b, err = json.Marshal(e.Value.Value)
+			if err != nil {
+				m.router.t.Errorf("failed to marshal body of route (%v %v %v)", status, route.Method, route.Path)
+				return
+			}
 		}
 
 		w.Header().Set("Content-Type", mime)

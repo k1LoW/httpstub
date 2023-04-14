@@ -172,6 +172,18 @@ paths:
           description: Found
         '404':
           description: Notfound
+  /ping:
+    get:
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                ex1:
+                  value: pong
 components:
   schemas:
     Username:

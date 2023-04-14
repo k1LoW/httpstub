@@ -578,13 +578,14 @@ func TestClearRequests(t *testing.T) {
 
 func TestMatcherResponseExample(t *testing.T) {
 	tests := []struct {
-		name        string
-		req         *http.Request
-		status      string
-		contentType string
-		wantErr     bool
+		name            string
+		req             *http.Request
+		status          string
+		wantContentType string
+		wantErr         bool
 	}{
 		{"valid req/res", newRequest(t, http.MethodGet, "/api/v1/users", ""), "*", "application/json", false},
+		{"valid req/res", newRequest(t, http.MethodGet, "/api/v1/ping", ""), "*", "text/plain", false},
 		{"valid req/res with status 200", newRequest(t, http.MethodGet, "/api/v1/users", ""), "200", "application/json", false},
 		{"valid req/res with status 2*", newRequest(t, http.MethodGet, "/api/v1/users", ""), "2*", "application/json", false},
 		{"invalid req", newRequest(t, http.MethodPost, "/api/v1/users", `{"invalid": "alice", "req": "passw0rd"}`), "*", "", true},
@@ -601,6 +602,7 @@ func TestMatcherResponseExample(t *testing.T) {
 			rt := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
 			rt.t = mockTB
 			rt.Method(http.MethodGet).Path("/api/v1/users").ResponseExample(Status(tt.status))
+			rt.Method(http.MethodGet).Path("/api/v1/ping").ResponseExample(Status(tt.status))
 			ts := rt.Server()
 			t.Cleanup(func() {
 				ts.Close()
@@ -615,8 +617,8 @@ func TestMatcherResponseExample(t *testing.T) {
 				return
 			}
 			got := res.Header.Get("Content-Type")
-			if got != tt.contentType {
-				t.Errorf("got %v\nwant %v", got, tt.contentType)
+			if got != tt.wantContentType {
+				t.Errorf("got %v\nwant %v", got, tt.wantContentType)
 			}
 		})
 	}
@@ -624,15 +626,17 @@ func TestMatcherResponseExample(t *testing.T) {
 
 func TestRouterResponseExample(t *testing.T) {
 	tests := []struct {
-		name    string
-		req     *http.Request
-		status  string
-		wantErr bool
+		name            string
+		req             *http.Request
+		status          string
+		wantContentType string
+		wantErr         bool
 	}{
-		{"valid req/res", newRequest(t, http.MethodGet, "/api/v1/users", ""), "*", false},
-		{"valid req/res with status 200", newRequest(t, http.MethodGet, "/api/v1/users", ""), "200", false},
-		{"valid req/res with status 2*", newRequest(t, http.MethodGet, "/api/v1/users", ""), "2*", false},
-		{"invalid req", newRequest(t, http.MethodPost, "/api/v1/users", `{"invalid": "alice", "req": "passw0rd"}`), "*", true},
+		{"valid req/res", newRequest(t, http.MethodGet, "/api/v1/users", ""), "*", "application/json", false},
+		{"valid req/res", newRequest(t, http.MethodGet, "/api/v1/ping", ""), "*", "text/plain", false},
+		{"valid req/res with status 200", newRequest(t, http.MethodGet, "/api/v1/users", ""), "200", "application/json", false},
+		{"valid req/res with status 2*", newRequest(t, http.MethodGet, "/api/v1/users", ""), "2*", "application/json", false},
+		{"invalid req", newRequest(t, http.MethodPost, "/api/v1/users", `{"invalid": "alice", "req": "passw0rd"}`), "*", "", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -655,12 +659,12 @@ func TestRouterResponseExample(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if !tt.wantErr {
-				got := res.Header.Get("Content-Type")
-				want := "application/json"
-				if got != want {
-					t.Errorf("got %v\nwant %v", got, want)
-				}
+			if tt.wantErr {
+				return
+			}
+			got := res.Header.Get("Content-Type")
+			if got != tt.wantContentType {
+				t.Errorf("got %v\nwant %v", got, tt.wantContentType)
 			}
 		})
 	}
