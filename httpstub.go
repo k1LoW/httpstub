@@ -11,9 +11,7 @@ import (
 	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
-	"regexp"
 	"strconv"
-	"strings"
 	"sync"
 	"testing"
 
@@ -570,9 +568,8 @@ func methodMatchFunc(method string) matchFunc {
 }
 
 func pathMatchFunc(path string) matchFunc {
-	pathRe := regexp.MustCompile(strings.Replace(path, "/*", "/.*", -1))
 	return func(r *http.Request) bool {
-		return pathRe.MatchString(r.URL.Path)
+		return wildcard.MatchSimple(path, r.URL.Path)
 	}
 }
 
