@@ -12,7 +12,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strconv"
-	"strings"
 	"sync"
 	"testing"
 
