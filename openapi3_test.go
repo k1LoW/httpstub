@@ -31,9 +31,9 @@ func TestOpenAPI3(t *testing.T) {
 			}
 			rt := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
 			rt.t = mockTB
-			rt.Method(http.MethodPost).Path("/users").Header("Content-Type", "application/json").ResponseString(http.StatusCreated, `{"name":"alice"}`)
+			rt.Method(http.MethodPost).Path("/api/v1/users").Header("Content-Type", "application/json").ResponseString(http.StatusCreated, `{"name":"alice"}`)
 			// invalid response
-			rt.Method(http.MethodGet).Path("/users").Header("Content-Type", "application/json").ResponseString(http.StatusBadRequest, `{"invalid":"data"}`)
+			rt.Method(http.MethodGet).Path("/api/v1/users").Header("Content-Type", "application/json").ResponseString(http.StatusBadRequest, `{"invalid":"data"}`)
 			ts := rt.Server()
 			t.Cleanup(func() {
 				ts.Close()
