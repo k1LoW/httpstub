@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.10.0](https://github.com/k1LoW/httpstub/compare/v0.9.2...v0.10.0) - 2023-04-14
+- [BREAKING CHANGE] Fix path match logic by @k1LoW in https://github.com/k1LoW/httpstub/pull/23
+- Support `text/*` response using `examples:` by @k1LoW in https://github.com/k1LoW/httpstub/pull/24
+
 ## [v0.9.2](https://github.com/k1LoW/httpstub/compare/v0.9.1...v0.9.2) - 2023-04-12
 - Fix handling Content-Type header in ResponseExample by @k1LoW in https://github.com/k1LoW/httpstub/pull/21
 
