@@ -91,6 +91,42 @@ func TestGet(t *testing.T) {
 }
 ```
 
+## Response using `examples:` of OpenAPI Document
+
+httpstub can return responses using [`examples:` of OpenAPI Document](https://swagger.io/docs/specification/adding-examples/).
+
+### Use `examples:` in all responses
+
+``` go
+ts := httpstub.NewServer(t, httpstub.OpenApi3("path/to/schema.yml"))
+t.Cleanup(func() {
+	ts.Close()
+})
+ts.ResponseExample()
+```
+
+### Use `examples:` in response to specific endpoint
+
+``` go
+ts := httpstub.NewServer(t, httpstub.OpenApi3("path/to/schema.yml"))
+t.Cleanup(func() {
+	ts.Close()
+})
+ts.Method(http.MethodGet).Path("/api/v1/users/1").ResponseExample()
+```
+
+### Use specific status code `examples:` in the response
+
+It is possible to specify status codes using wildcard.
+
+``` go
+ts := httpstub.NewServer(t, httpstub.OpenApi3("path/to/schema.yml"))
+t.Cleanup(func() {
+	ts.Close()
+})
+ts.Method(http.MethodPost).Path("/api/v1/users").ResponseExample(httpstub.Status("2*"))
+```
+
 ## Example
 
 ### Stub Twilio
