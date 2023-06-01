@@ -32,6 +32,8 @@ type TB interface {
 }
 
 type Router struct {
+	// Set *httptest.Server.URL
+	URL                                 string
 	matchers                            []*matcher
 	server                              *httptest.Server
 	middlewares                         middlewareFuncs
@@ -125,7 +127,8 @@ func NewRouter(t *testing.T, opts ...Option) *Router {
 func NewServer(t *testing.T, opts ...Option) *Router {
 	t.Helper()
 	rt := NewRouter(t, opts...)
-	_ = rt.Server()
+	s := rt.Server()
+	rt.URL = s.URL
 	return rt
 }
 
@@ -134,7 +137,8 @@ func NewTLSServer(t *testing.T, opts ...Option) *Router {
 	t.Helper()
 	rt := NewRouter(t, opts...)
 	rt.useTLS = true
-	_ = rt.TLSServer()
+	s := rt.TLSServer()
+	rt.URL = s.URL
 	return rt
 }
 
@@ -221,6 +225,7 @@ func (rt *Router) Server() *httptest.Server {
 	client := rt.server.Client()
 	tp := client.Transport.(*http.Transport)
 	client.Transport = newTransport(rt.server.URL, tp)
+	rt.URL = rt.server.URL
 	return rt.server
 }
 

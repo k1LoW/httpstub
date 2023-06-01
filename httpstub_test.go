@@ -669,3 +669,23 @@ func TestRouterResponseExample(t *testing.T) {
 		})
 	}
 }
+
+func TestURL(t *testing.T) {
+	rt := NewRouter(t)
+	{
+		got := rt.URL
+		if got != "" {
+			t.Errorf("got %v want %v", got, "")
+		}
+	}
+	ts := rt.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	{
+		got := rt.URL
+		if got == "" {
+			t.Error("want url")
+		}
+	}
+}
