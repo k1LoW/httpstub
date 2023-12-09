@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.11.1](https://github.com/k1LoW/httpstub/compare/v0.11.0...v0.11.1) - 2023-12-09
+- Fix: Multiple Matchers Consuming Request Body Causing Stub Handler Failure by @qawatake in https://github.com/k1LoW/httpstub/pull/28
+
 ## [v0.11.0](https://github.com/k1LoW/httpstub/compare/v0.10.0...v0.11.0) - 2023-06-01
 - Add Router.URL for get *httptest.Server.URL by @k1LoW in https://github.com/k1LoW/httpstub/pull/27
 
