@@ -247,7 +247,7 @@ func (rt *Router) Close() {
 // Match create request matcher with matchFunc (func(r *http.Request) bool).
 func (rt *Router) Match(fn func(r *http.Request) bool) *matcher {
 	m := &matcher{
-		matchFuncs: []matchFunc{fn},
+		matchFuncs: []matchFunc{withCloneReq(fn)},
 		router:     rt,
 	}
 	rt.mu.Lock()
@@ -260,7 +260,7 @@ func (rt *Router) Match(fn func(r *http.Request) bool) *matcher {
 func (m *matcher) Match(fn func(r *http.Request) bool) *matcher {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.matchFuncs = append(m.matchFuncs, fn)
+	m.matchFuncs = append(m.matchFuncs, withCloneReq(fn))
 	return m
 }
 
@@ -649,4 +649,11 @@ func matchOne[T any](m map[string]*T, pattern string) (string, *T) {
 		return k, v
 	}
 	return "", nil
+}
+
+func withCloneReq(fn matchFunc) matchFunc {
+	return func(r *http.Request) bool {
+		r2 := cloneReq(r)
+		return fn(r2)
+	}
 }
