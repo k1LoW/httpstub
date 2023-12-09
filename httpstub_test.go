@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -105,6 +106,95 @@ func TestMatcherMatch(t *testing.T) {
 	if got != want {
 		t.Errorf("got %v\nwant %v", got, want)
 	}
+}
+
+func TestMatcherMatchConsumingBody(t *testing.T) {
+	t.Run("only Match", func(t *testing.T) {
+		rt := NewRouter(t)
+		rt.Match(func(r *http.Request) bool {
+			b, err := io.ReadAll(r.Body)
+			if err != nil {
+				return false
+			}
+			return strings.Contains(string(b), "add")
+		}).Response(http.StatusAccepted, nil)
+		rt.Match(func(r *http.Request) bool {
+			b, err := io.ReadAll(r.Body)
+			if err != nil {
+				return false
+			}
+			return strings.Contains(string(b), "subtract")
+		}).Response(http.StatusAccepted, nil)
+		ts := rt.Server()
+		t.Cleanup(func() {
+			ts.Close()
+		})
+		tc := ts.Client()
+		res, err := tc.Post("https://example.com/jrpc", "application/json", strings.NewReader(`{"jsonrpc":"2.0", "method": "subtract", "params": {"a": 10, "b": 3}, "id": 123}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			res.Body.Close()
+		})
+
+		requests := rt.Requests()
+		if len(requests) != 1 {
+			t.Errorf("got %v\nwant %v", len(requests), 1)
+		}
+		b, err := io.ReadAll(requests[0].Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := string(b)
+		want := `{"jsonrpc":"2.0", "method": "subtract", "params": {"a": 10, "b": 3}, "id": 123}`
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	})
+	t.Run("Path and Match", func(t *testing.T) {
+		rt := NewRouter(t)
+		rt.Path("/jrpc").Match(func(r *http.Request) bool {
+			b, err := io.ReadAll(r.Body)
+			if err != nil {
+				return false
+			}
+			return strings.Contains(string(b), "add")
+		}).Response(http.StatusAccepted, nil)
+		rt.Path("/jrpc").Match(func(r *http.Request) bool {
+			b, err := io.ReadAll(r.Body)
+			if err != nil {
+				return false
+			}
+			return strings.Contains(string(b), "subtract")
+		}).Response(http.StatusAccepted, nil)
+		ts := rt.Server()
+		t.Cleanup(func() {
+			ts.Close()
+		})
+		tc := ts.Client()
+		res, err := tc.Post("https://example.com/jrpc", "application/json", strings.NewReader(`{"jsonrpc":"2.0", "method": "subtract", "params": {"a": 10, "b": 3}, "id": 123}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			res.Body.Close()
+		})
+
+		requests := rt.Requests()
+		if len(requests) != 1 {
+			t.Errorf("got %v\nwant %v", len(requests), 1)
+		}
+		b, err := io.ReadAll(requests[0].Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := string(b)
+		want := `{"jsonrpc":"2.0", "method": "subtract", "params": {"a": 10, "b": 3}, "id": 123}`
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	})
 }
 
 func TestMatcherMethod(t *testing.T) {
