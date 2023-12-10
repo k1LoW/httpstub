@@ -23,9 +23,8 @@ func TestGet(t *testing.T) {
 		ts.Close()
 	})
 	ts.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
-	tc := ts.Client()
 
-	res, err := tc.Get("https://example.com/api/v1/users/1")
+	res, err := http.Get(ts.URL + "/api/v1/users/1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,9 +66,8 @@ func TestGet(t *testing.T) {
 	t.Cleanup(func() {
 		ts.Close()
 	})
-	tc := ts.Client()
 
-	res, err := tc.Get("https://example.com/api/v1/users/1")
+	res, err := http.Get(ts.URL + "/api/v1/users/1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,6 +125,24 @@ t.Cleanup(func() {
 ts.Method(http.MethodPost).Path("/api/v1/users").ResponseExample(httpstub.Status("2*"))
 ```
 
+### HTTP Client that always makes HTTP request to stub server
+
+It is possible to create a client that will always make an HTTP request to the stub server.
+
+``` go
+ts := httpstub.NewServer(t)
+t.Cleanup(func() {
+	ts.Close()
+})
+ts.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
+tc := ts.Client()
+
+res, err := tc.Get("https://example.com/api/v1/users/1") // Request goes to stub server instead of https://example.com
+if err != nil {
+	t.Fatal(err)
+}
+```
+
 ## Example
 
 ### Stub Twilio
@@ -181,4 +197,3 @@ func TestTwilioClient(t *testing.T) {
 ## Alternatives
 
 - [github.com/jharlap/httpstub](https://github.com/jharlap/httpstub): Easy stub HTTP servers for testing in Go
-
