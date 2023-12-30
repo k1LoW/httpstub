@@ -21,7 +21,10 @@ import (
 	"github.com/minio/pkg/wildcard"
 )
 
-var _ http.Handler = (*Router)(nil)
+var (
+	_ http.Handler = (*Router)(nil)
+	_ TB           = (testing.TB)(nil)
+)
 
 type TB interface {
 	Error(args ...any)
@@ -98,7 +101,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewRouter returns a new router with methods for stubbing.
-func NewRouter(t *testing.T, opts ...Option) *Router {
+func NewRouter(t TB, opts ...Option) *Router {
 	t.Helper()
 	c := &config{}
 	for _, opt := range opts {
@@ -124,7 +127,7 @@ func NewRouter(t *testing.T, opts ...Option) *Router {
 }
 
 // NewServer returns a new router including *httptest.Server.
-func NewServer(t *testing.T, opts ...Option) *Router {
+func NewServer(t TB, opts ...Option) *Router {
 	t.Helper()
 	rt := NewRouter(t, opts...)
 	s := rt.Server()
@@ -133,7 +136,7 @@ func NewServer(t *testing.T, opts ...Option) *Router {
 }
 
 // NewTLSServer returns a new router including TLS *httptest.Server.
-func NewTLSServer(t *testing.T, opts ...Option) *Router {
+func NewTLSServer(t TB, opts ...Option) *Router {
 	t.Helper()
 	rt := NewRouter(t, opts...)
 	rt.useTLS = true

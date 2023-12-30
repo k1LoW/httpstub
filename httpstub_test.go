@@ -779,3 +779,10 @@ func TestURL(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkNewServer(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		ts := NewServer(b)
+		ts.Close()
+	}
+}
