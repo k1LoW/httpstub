@@ -470,7 +470,7 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 			m.router.t.Errorf("failed to find route (%v %v) operation of method: %s", route.Method, route.Path, route.Method)
 			return
 		}
-		s, res := matchOne(op.Responses, c.status)
+		s, res := matchOne(op.Responses.Map(), c.status)
 		if res == nil {
 			m.router.t.Errorf("failed to find route (%v %v) response of status %s", route.Method, route.Path, c.status)
 			return
@@ -641,15 +641,12 @@ func one[T any](m map[string]*T) (string, *T) {
 	return "", nil
 }
 
+// matchOne returns match one randomly from map.
 func matchOne[T any](m map[string]*T, pattern string) (string, *T) {
-	matches := map[string]*T{}
 	for k, v := range m {
 		if wildcard.MatchSimple(pattern, k) {
-			matches[k] = v
+			return k, v
 		}
-	}
-	for k, v := range matches {
-		return k, v
 	}
 	return "", nil
 }
