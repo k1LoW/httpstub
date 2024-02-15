@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.13.0](https://github.com/k1LoW/httpstub/compare/v0.12.0...v0.13.0) - 2024-02-15
+- Update pkgs by @k1LoW in https://github.com/k1LoW/httpstub/pull/32
+
 ## [v0.12.0](https://github.com/k1LoW/httpstub/compare/v0.11.1...v0.12.0) - 2023-12-30
 - Fix to accept *testing.B by @k1LoW in https://github.com/k1LoW/httpstub/pull/31
 
