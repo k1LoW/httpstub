@@ -389,10 +389,25 @@ func (m *matcher) Handler(fn func(w http.ResponseWriter, r *http.Request)) {
 }
 
 // Response set handler which return response (status and body).
-func (m *matcher) Response(status int, body []byte) {
+func (m *matcher) Response(status int, body any) {
+	var (
+		b   []byte
+		err error
+	)
+	switch v := body.(type) {
+	case string:
+		b = []byte(v)
+	case []byte:
+		b = v
+	default:
+		b, err = json.Marshal(v)
+		if err != nil {
+			m.router.t.Fatalf("failed to convert message: %v", err)
+		}
+	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(status)
-		_, _ = w.Write(body)
+		_, _ = w.Write(b)
 	}
 	m.handler = http.HandlerFunc(fn)
 }
