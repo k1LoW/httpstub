@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.14.0](https://github.com/k1LoW/httpstub/compare/v0.13.0...v0.14.0) - 2024-02-27
+- Response() accepts more than []bytes by @k1LoW in https://github.com/k1LoW/httpstub/pull/34
+
 ## [v0.13.0](https://github.com/k1LoW/httpstub/compare/v0.12.0...v0.13.0) - 2024-02-15
 - Update pkgs by @k1LoW in https://github.com/k1LoW/httpstub/pull/32
 
