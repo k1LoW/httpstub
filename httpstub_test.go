@@ -56,6 +56,48 @@ func TestStub(t *testing.T) {
 	}
 }
 
+func TestResponse(t *testing.T) {
+	tests := []struct {
+		body any
+	}{
+		{`{"name":"alice"}`},
+		{[]byte(`{"name":"alice"}`)},
+		{map[string]string{"name": "alice"}},
+		{struct {
+			Name string `json:"name"`
+		}{"alice"}},
+	}
+	for _, tt := range tests {
+		rt := NewRouter(t)
+		rt.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").Response(http.StatusOK, tt.body)
+		ts := rt.Server()
+		t.Cleanup(func() {
+			ts.Close()
+		})
+		tc := ts.Client()
+
+		res, err := tc.Get("https://example.com/api/v1/users/1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			res.Body.Close()
+		})
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		{
+			got := string(body)
+			want := `{"name":"alice"}`
+			if got != want {
+				t.Errorf("got %v\nwant %v", got, want)
+			}
+		}
+	}
+
+}
+
 func TestRouterMatch(t *testing.T) {
 	rt := NewRouter(t)
 	rt.Match(func(r *http.Request) bool {
