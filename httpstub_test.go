@@ -777,7 +777,7 @@ func TestRouterResponseExample(t *testing.T) {
 			mockTB := mock_httpstub.NewMockTB(ctrl)
 			mockTB.EXPECT().Helper()
 			if tt.wantErr {
-				mockTB.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(3)
+				mockTB.EXPECT().Errorf(gomock.Any(), gomock.Any())
 			}
 			rt := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
 			rt.t = mockTB
