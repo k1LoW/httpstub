@@ -9,6 +9,7 @@ import (
 
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
+	"github.com/pb33f/libopenapi/datamodel"
 )
 
 type config struct {
@@ -27,6 +28,10 @@ type Option func(*config) error
 func OpenApi3(l string) Option {
 	return func(c *config) error {
 		var doc libopenapi.Document
+		dc := &datamodel.DocumentConfiguration{
+			AllowFileReferences:   true,
+			AllowRemoteReferences: true,
+		}
 		switch {
 		case strings.HasPrefix(l, "https://") || strings.HasPrefix(l, "http://"):
 			res, err := http.Get(l)
@@ -38,7 +43,7 @@ func OpenApi3(l string) Option {
 			if err != nil {
 				return err
 			}
-			doc, err = libopenapi.NewDocument(b)
+			doc, err = libopenapi.NewDocumentWithConfiguration(b, dc)
 			if err != nil {
 				return err
 			}
@@ -47,7 +52,7 @@ func OpenApi3(l string) Option {
 			if err != nil {
 				return err
 			}
-			doc, err = libopenapi.NewDocument(b)
+			doc, err = libopenapi.NewDocumentWithConfiguration(b, dc)
 			if err != nil {
 				return err
 			}
