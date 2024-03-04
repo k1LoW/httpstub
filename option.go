@@ -16,8 +16,8 @@ type config struct {
 	useTLS                              bool
 	cacert, cert, key                   []byte
 	clientCacert, clientCert, clientKey []byte
-	openapi3Doc                         *libopenapi.Document
-	openapi3Validator                   *validator.Validator
+	openAPI3Doc                         *libopenapi.Document
+	openAPI3Validator                   *validator.Validator
 	skipValidateRequest                 bool
 	skipValidateResponse                bool
 }
@@ -68,8 +68,8 @@ func OpenApi3(l string) Option {
 			}
 			return err
 		}
-		c.openapi3Doc = &doc
-		c.openapi3Validator = &v
+		c.openAPI3Doc = &doc
+		c.openAPI3Validator = &v
 		return nil
 	}
 }
@@ -92,8 +92,8 @@ func OpenApi3FromData(b []byte) Option {
 			}
 			return err
 		}
-		c.openapi3Doc = &doc
-		c.openapi3Validator = &v
+		c.openAPI3Doc = &doc
+		c.openAPI3Validator = &v
 		return nil
 	}
 }

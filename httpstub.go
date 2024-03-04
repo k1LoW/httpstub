@@ -53,8 +53,8 @@ type Router struct {
 	useTLS                              bool
 	cacert, cert, key                   []byte
 	clientCacert, clientCert, clientKey []byte
-	openapi3Doc                         *libopenapi.Document
-	openapi3Validator                   *validator.Validator
+	openAPI3Doc                         *libopenapi.Document
+	openAPI3Validator                   *validator.Validator
 	skipValidateRequest                 bool
 	skipValidateResponse                bool
 	mu                                  sync.RWMutex
@@ -127,8 +127,8 @@ func NewRouter(t TB, opts ...Option) *Router {
 		clientCacert:      c.clientCacert,
 		clientCert:        c.clientCert,
 		clientKey:         c.clientKey,
-		openapi3Doc:       c.openapi3Doc,
-		openapi3Validator: c.openapi3Validator,
+		openAPI3Doc:       c.openAPI3Doc,
+		openAPI3Validator: c.openAPI3Validator,
 	}
 	if err := rt.setOpenApi3Vaildator(); err != nil {
 		t.Fatal(err)
@@ -456,7 +456,7 @@ func Status(pattern string) responseExampleOption {
 
 // ResponseExample set handler which return response using examples of OpenAPI v3 Document
 func (m *matcher) ResponseExample(opts ...responseExampleOption) {
-	if m.router.openapi3Doc == nil {
+	if m.router.openAPI3Doc == nil {
 		m.router.t.Error("no OpenAPI v3 document is set")
 		return
 	}
@@ -467,7 +467,7 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 			return
 		}
 	}
-	doc := *m.router.openapi3Doc
+	doc := *m.router.openAPI3Doc
 	v3, errs := doc.BuildV3Model()
 	if errs != nil {
 		m.router.t.Errorf("failed to build OpenAPI v3 model: %v", errors.Join(errs...))
