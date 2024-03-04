@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.14.1](https://github.com/k1LoW/httpstub/compare/v0.14.0...v0.14.1) - 2024-03-04
+- Response(nil) should be empty body by @k1LoW in https://github.com/k1LoW/httpstub/pull/36
+
 ## [v0.14.0](https://github.com/k1LoW/httpstub/compare/v0.13.0...v0.14.0) - 2024-02-27
 - Response() accepts more than []bytes by @k1LoW in https://github.com/k1LoW/httpstub/pull/34
 
