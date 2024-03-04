@@ -1,20 +1,22 @@
 package httpstub
 
 import (
-	"context"
-	"fmt"
-	"net/url"
+	"errors"
+	"io"
+	"net/http"
 	"os"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/pb33f/libopenapi"
+	validator "github.com/pb33f/libopenapi-validator"
 )
 
 type config struct {
 	useTLS                              bool
 	cacert, cert, key                   []byte
 	clientCacert, clientCert, clientKey []byte
-	openApi3Doc                         *openapi3.T
+	openapi3Doc                         *libopenapi.Document
+	openapi3Validator                   *validator.Validator
 	skipValidateRequest                 bool
 	skipValidateResponse                bool
 }
@@ -24,16 +26,19 @@ type Option func(*config) error
 // OpenApi3 sets OpenAPI Document using file path.
 func OpenApi3(l string) Option {
 	return func(c *config) error {
-		ctx := context.Background()
-		loader := openapi3.NewLoader()
-		var doc *openapi3.T
+		var doc libopenapi.Document
 		switch {
 		case strings.HasPrefix(l, "https://") || strings.HasPrefix(l, "http://"):
-			u, err := url.Parse(l)
+			res, err := http.Get(l)
 			if err != nil {
 				return err
 			}
-			doc, err = loader.LoadFromURI(u)
+			defer res.Body.Close()
+			b, err := io.ReadAll(res.Body)
+			if err != nil {
+				return err
+			}
+			doc, err = libopenapi.NewDocument(b)
 			if err != nil {
 				return err
 			}
@@ -42,15 +47,24 @@ func OpenApi3(l string) Option {
 			if err != nil {
 				return err
 			}
-			doc, err = loader.LoadFromData(b)
+			doc, err = libopenapi.NewDocument(b)
 			if err != nil {
 				return err
 			}
 		}
-		if err := doc.Validate(ctx); err != nil {
-			return fmt.Errorf("openapi3 document validation error: %w", err)
+		v, errs := validator.NewValidator(doc)
+		if len(errs) > 0 {
+			return errors.Join(errs...)
 		}
-		c.openApi3Doc = doc
+		if _, errs := v.ValidateDocument(); len(errs) > 0 {
+			var err error
+			for _, e := range errs {
+				err = errors.Join(err, e)
+			}
+			return err
+		}
+		c.openapi3Doc = &doc
+		c.openapi3Validator = &v
 		return nil
 	}
 }
@@ -58,16 +72,23 @@ func OpenApi3(l string) Option {
 // OpenApi3FromData sets OpenAPI Document from bytes
 func OpenApi3FromData(b []byte) Option {
 	return func(c *config) error {
-		ctx := context.Background()
-		loader := openapi3.NewLoader()
-		doc, err := loader.LoadFromData(b)
+		doc, err := libopenapi.NewDocument(b)
 		if err != nil {
 			return err
 		}
-		if err := doc.Validate(ctx); err != nil {
-			return fmt.Errorf("openapi3 document validation error: %w", err)
+		v, errs := validator.NewValidator(doc)
+		if len(errs) > 0 {
+			return errors.Join(errs...)
 		}
-		c.openApi3Doc = doc
+		if _, errs := v.ValidateDocument(); len(errs) > 0 {
+			var err error
+			for _, e := range errs {
+				err = errors.Join(err, e)
+			}
+			return err
+		}
+		c.openapi3Doc = &doc
+		c.openapi3Validator = &v
 		return nil
 	}
 }

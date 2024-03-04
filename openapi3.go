@@ -2,13 +2,11 @@ package httpstub
 
 import (
 	"bytes"
-	"context"
+	"errors"
 	"io"
 	"net/http"
-	"net/url"
 
-	"github.com/getkin/kin-openapi/openapi3filter"
-	legacyrouter "github.com/getkin/kin-openapi/routers/legacy"
+	rvalidator "github.com/pb33f/libopenapi-validator/responses"
 )
 
 var _ http.ResponseWriter = (*recorder)(nil)
@@ -42,67 +40,52 @@ func (r *recorder) WriteHeader(statusCode int) {
 	r.rw.WriteHeader(statusCode)
 }
 
+func (r *recorder) toResponse() *http.Response {
+	return &http.Response{
+		Status:     http.StatusText(r.statusCode),
+		StatusCode: r.statusCode,
+		Body:       io.NopCloser(r.body),
+		Header:     r.rw.Header().Clone(),
+	}
+}
+
 func (rt *Router) setOpenApi3Vaildator() error {
+	rt.t.Helper()
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
-	if rt.openApi3Doc == nil {
+	if rt.openapi3Doc == nil {
 		return nil
 	}
+	doc := *rt.openapi3Doc
+	v3, errs := doc.BuildV3Model()
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+	rv := rvalidator.NewResponseBodyValidator(&v3.Model)
 	mw := func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.Background()
-			router, err := legacyrouter.NewRouter(rt.openApi3Doc)
-			if err != nil {
-				rt.t.Error(err)
-			}
-
-			// skip scheme://host:port validation
-			for _, server := range rt.openApi3Doc.Servers {
-				su, err := url.Parse(server.URL)
-				if err != nil {
-					rt.t.Error(err)
-				}
-				su.Host = r.URL.Host
-				su.Opaque = r.URL.Opaque
-				su.Scheme = r.URL.Scheme
-				server.URL = su.String()
-			}
-
-			var reqv *openapi3filter.RequestValidationInput
-			route, pathParams, err := router.FindRoute(r)
-			if err != nil {
-				rt.t.Errorf("failed to find route: %v", err)
-			} else {
-				reqv = &openapi3filter.RequestValidationInput{
-					Request:    r,
-					PathParams: pathParams,
-					Route:      route,
-					Options: &openapi3filter.Options{
-						AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
-					},
-				}
-				if !rt.skipValidateRequest {
-					if err := openapi3filter.ValidateRequest(ctx, reqv); err != nil {
-						rt.t.Errorf("failed to validate request: %v", err)
+			if !rt.skipValidateRequest {
+				v := *rt.openapi3Validator
+				_, errs := v.ValidateHttpRequest(r)
+				if len(errs) > 0 {
+					var err error
+					for _, e := range errs {
+						err = errors.Join(err, e)
 					}
+					rt.t.Errorf("failed to validate response: %v", err)
 				}
 			}
 			rec := newRecorder(w)
 			next.ServeHTTP(rec, r)
-			if reqv != nil {
-				resv := &openapi3filter.ResponseValidationInput{
-					RequestValidationInput: reqv,
-					Status:                 rec.statusCode,
-					Header:                 w.Header(),
-					Body:                   io.NopCloser(rec.body),
-					Options: &openapi3filter.Options{
-						IncludeResponseStatus: true,
-					},
-				}
-				if !rt.skipValidateResponse {
-					if err := openapi3filter.ValidateResponse(ctx, resv); err != nil {
-						rt.t.Errorf("failed to validate response: %v", err)
+
+			if !rt.skipValidateResponse {
+				_, errs := rv.ValidateResponseBody(r, rec.toResponse())
+				if len(errs) > 0 {
+					var err error
+					for _, e := range errs {
+						err = errors.Join(err, e)
 					}
+					rt.t.Errorf("failed to validate response: %v", err)
 				}
 			}
 		}

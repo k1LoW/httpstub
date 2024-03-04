@@ -2,9 +2,11 @@ package httpstub
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,9 +18,15 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/getkin/kin-openapi/openapi3"
-	legacyrouter "github.com/getkin/kin-openapi/routers/legacy"
 	"github.com/minio/pkg/wildcard"
+	"github.com/pb33f/libopenapi"
+	validator "github.com/pb33f/libopenapi-validator"
+	"github.com/pb33f/libopenapi-validator/paths"
+	rvalidator "github.com/pb33f/libopenapi-validator/responses"
+	"github.com/pb33f/libopenapi/datamodel/high/base"
+	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
+	openapijson "github.com/pb33f/libopenapi/json"
+	"github.com/pb33f/libopenapi/orderedmap"
 )
 
 var (
@@ -45,7 +53,9 @@ type Router struct {
 	useTLS                              bool
 	cacert, cert, key                   []byte
 	clientCacert, clientCert, clientKey []byte
-	openApi3Doc                         *openapi3.T
+	openapi3Doc                         *libopenapi.Document
+	openapi3Validator                   *validator.Validator
+	openapi3ResponseValidator           rvalidator.ResponseBodyValidator
 	skipValidateRequest                 bool
 	skipValidateResponse                bool
 	mu                                  sync.RWMutex
@@ -110,15 +120,16 @@ func NewRouter(t TB, opts ...Option) *Router {
 		}
 	}
 	rt := &Router{
-		t:            t,
-		useTLS:       c.useTLS,
-		cacert:       c.cacert,
-		cert:         c.cert,
-		key:          c.key,
-		clientCacert: c.clientCacert,
-		clientCert:   c.clientCert,
-		clientKey:    c.clientKey,
-		openApi3Doc:  c.openApi3Doc,
+		t:                 t,
+		useTLS:            c.useTLS,
+		cacert:            c.cacert,
+		cert:              c.cert,
+		key:               c.key,
+		clientCacert:      c.clientCacert,
+		clientCert:        c.clientCert,
+		clientKey:         c.clientKey,
+		openapi3Doc:       c.openapi3Doc,
+		openapi3Validator: c.openapi3Validator,
 	}
 	if err := rt.setOpenApi3Vaildator(); err != nil {
 		t.Fatal(err)
@@ -446,7 +457,7 @@ func Status(pattern string) responseExampleOption {
 
 // ResponseExample set handler which return response using examples of OpenAPI v3 Document
 func (m *matcher) ResponseExample(opts ...responseExampleOption) {
-	if m.router.openApi3Doc == nil {
+	if m.router.openapi3Doc == nil {
 		m.router.t.Error("no OpenAPI v3 document is set")
 		return
 	}
@@ -457,39 +468,30 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 			return
 		}
 	}
+	doc := *m.router.openapi3Doc
+	v3, errs := doc.BuildV3Model()
+	if errs != nil {
+		m.router.t.Errorf("failed to build OpenAPI v3 model: %v", errors.Join(errs...))
+		return
+	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		router, err := legacyrouter.NewRouter(m.router.openApi3Doc)
-		if err != nil {
-			m.router.t.Error(err)
-			return
-		}
-
-		// skip scheme://host:port validation
-		for _, server := range m.router.openApi3Doc.Servers {
-			su, err := url.Parse(server.URL)
-			if err != nil {
-				m.router.t.Error(err)
-				return
+		pathItem, errs, pathValue := paths.FindPath(r, &v3.Model)
+		if pathItem == nil || errs != nil {
+			var err error
+			for _, e := range errs {
+				err = errors.Join(err, e)
 			}
-			su.Host = r.URL.Host
-			su.Opaque = r.URL.Opaque
-			su.Scheme = r.URL.Scheme
-			server.URL = su.String()
-		}
-
-		route, _, err := router.FindRoute(r)
-		if err != nil {
-			m.router.t.Errorf("failed to find route: %v", err)
+			m.router.t.Errorf("failed to find route for %v %v: %v", r.Method, r.URL.Path, err)
 			return
 		}
-		op := route.PathItem.GetOperation(route.Method)
-		if op == nil {
-			m.router.t.Errorf("failed to find route (%v %v) operation of method: %s", route.Method, route.Path, route.Method)
+		op, ok := pathItem.GetOperations().Get(strings.ToLower(r.Method))
+		if !ok {
+			m.router.t.Errorf("failed to find route (%v %v) operation of method: %s", r.Method, pathValue, r.Method)
 			return
 		}
-		s, res := matchOne(op.Responses.Map(), c.status)
+		s, res := matchOne(op.Responses, c.status)
 		if res == nil {
-			m.router.t.Errorf("failed to find route (%v %v) response of status %s", route.Method, route.Path, c.status)
+			m.router.t.Errorf("failed to find route (%v %v) response of status %s", r.Method, pathValue, c.status)
 			return
 		}
 		status, err := strconv.Atoi(s)
@@ -499,32 +501,33 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 		}
 
 		mime := r.Header.Get("Content-Type")
-		mt := res.Value.Content.Get(mime)
-		if mt == nil {
-			mime, mt = one(res.Value.Content)
-		}
-		if mt == nil {
-			m.router.t.Errorf("failed to find route (%v %v %v) mimeType", status, route.Method, route.Path)
-			return
-		}
-		if len(mt.Examples) == 0 {
-			m.router.t.Errorf("failed to find route (%v %v %v) example", status, route.Method, route.Path)
-			return
-		}
-		_, e := one(mt.Examples)
-		var b []byte
-		switch {
-		case strings.Contains(mime, "text"):
-			s, ok := e.Value.Value.(string)
+		var e *base.Example
+		if res.Content != nil {
+			mt, ok := res.Content.Get(mime)
 			if !ok {
-				m.router.t.Errorf("failed to marshal body of route (%v %v %v)", status, route.Method, route.Path)
+				p := res.Content.First()
+				mime, mt = p.Key(), p.Value()
+			}
+			if mt == nil {
+				m.router.t.Errorf("failed to find route (%v %v %v) mimeType", status, r.Method, pathValue)
 				return
 			}
-			b = []byte(s)
+			if mt.Examples.Len() == 0 {
+				m.router.t.Errorf("failed to find route (%v %v %v) example", status, r.Method, pathValue)
+				return
+			}
+			e = mt.Examples.First().Value()
+		}
+		var b []byte
+		switch {
+		case e == nil:
+			b = nil
+		case strings.Contains(mime, "text"):
+			b = []byte(e.Value.Value)
 		default:
-			b, err = json.Marshal(e.Value.Value)
+			b, err = openapijson.YAMLNodeToJSON(e.Value, "  ")
 			if err != nil {
-				m.router.t.Errorf("failed to marshal body of route (%v %v %v)", status, route.Method, route.Path)
+				m.router.t.Errorf("failed to marshal body of route (%v %v %v)", status, r.Method, pathValue)
 				return
 			}
 		}
@@ -659,10 +662,11 @@ func one[T any](m map[string]*T) (string, *T) {
 }
 
 // matchOne returns match one randomly from map.
-func matchOne[T any](m map[string]*T, pattern string) (string, *T) {
-	for k, v := range m {
-		if wildcard.MatchSimple(pattern, k) {
-			return k, v
+func matchOne(r *v3.Responses, pattern string) (string, *v3.Response) {
+	m := r.Codes
+	for p := range orderedmap.Iterate(context.Background(), m) {
+		if wildcard.MatchSimple(pattern, p.Key()) {
+			return p.Key(), p.Value()
 		}
 	}
 	return "", nil
