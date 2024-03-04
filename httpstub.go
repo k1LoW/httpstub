@@ -399,6 +399,8 @@ func (m *matcher) Response(status int, body any) {
 		b = []byte(v)
 	case []byte:
 		b = v
+	case nil:
+		b = nil
 	default:
 		b, err = json.Marshal(v)
 		if err != nil {
