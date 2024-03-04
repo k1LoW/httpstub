@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -22,7 +23,6 @@ import (
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
 	"github.com/pb33f/libopenapi-validator/paths"
-	rvalidator "github.com/pb33f/libopenapi-validator/responses"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
 	openapijson "github.com/pb33f/libopenapi/json"
@@ -55,7 +55,6 @@ type Router struct {
 	clientCacert, clientCert, clientKey []byte
 	openapi3Doc                         *libopenapi.Document
 	openapi3Validator                   *validator.Validator
-	openapi3ResponseValidator           rvalidator.ResponseBodyValidator
 	skipValidateRequest                 bool
 	skipValidateResponse                bool
 	mu                                  sync.RWMutex
@@ -516,7 +515,7 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 				m.router.t.Errorf("failed to find route (%v %v %v) example", status, r.Method, pathValue)
 				return
 			}
-			e = mt.Examples.First().Value()
+			e = one(mt.Examples)
 		}
 		var b []byte
 		switch {
@@ -654,11 +653,16 @@ func (t *transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	return res, err
 }
 
-func one[T any](m map[string]*T) (string, *T) {
-	for k, v := range m {
-		return k, v
+func one[K comparable, V *base.Example](m *orderedmap.Map[K, V]) V {
+	l := m.Len()
+	i := rand.Intn(l)
+	for p := range orderedmap.Iterate(context.Background(), m) {
+		if i == 0 {
+			return p.Value()
+		}
+		i--
 	}
-	return "", nil
+	return nil
 }
 
 // matchOne returns match one randomly from map.
