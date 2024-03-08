@@ -6,7 +6,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/minio/pkg v1.7.5
 	github.com/pb33f/libopenapi v0.15.14
-	github.com/pb33f/libopenapi-validator v0.0.42
+	github.com/pb33f/libopenapi-validator v0.0.44
 )
 
 require (

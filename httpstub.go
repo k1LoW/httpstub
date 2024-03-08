@@ -468,13 +468,13 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 		}
 	}
 	doc := *m.router.openAPI3Doc
-	v3, errs := doc.BuildV3Model()
+	v3m, errs := doc.BuildV3Model()
 	if errs != nil {
 		m.router.t.Errorf("failed to build OpenAPI v3 model: %v", errors.Join(errs...))
 		return
 	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		pathItem, errs, pathValue := paths.FindPath(r, &v3.Model)
+		pathItem, errs, pathValue := paths.FindPath(r, &v3m.Model)
 		if pathItem == nil || errs != nil {
 			var err error
 			for _, e := range errs {
