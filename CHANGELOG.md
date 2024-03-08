@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.15.1](https://github.com/k1LoW/httpstub/compare/v0.15.0...v0.15.1) - 2024-03-08
+### Other Changes
+- Use validator.ValidateHttpResponse by @k1LoW in https://github.com/k1LoW/httpstub/pull/41
+
 ## [v0.15.0](https://github.com/k1LoW/httpstub/compare/v0.14.1...v0.15.0) - 2024-03-04
 ### Breaking Changes 🛠
 - Use github.com/pb33f/libopenapi instead of github.com/getkin/kin-openapi by @k1LoW in https://github.com/k1LoW/httpstub/pull/38
