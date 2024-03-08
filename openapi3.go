@@ -5,8 +5,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-
-	rvalidator "github.com/pb33f/libopenapi-validator/responses"
 )
 
 var _ http.ResponseWriter = (*recorder)(nil)
@@ -56,16 +54,10 @@ func (rt *Router) setOpenApi3Vaildator() error {
 	if rt.openAPI3Doc == nil {
 		return nil
 	}
-	doc := *rt.openAPI3Doc
-	v3, errs := doc.BuildV3Model()
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-	rv := rvalidator.NewResponseBodyValidator(&v3.Model)
 	mw := func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
+			v := *rt.openAPI3Validator
 			if !rt.skipValidateRequest {
-				v := *rt.openAPI3Validator
 				_, errs := v.ValidateHttpRequest(r)
 				if len(errs) > 0 {
 					var err error
@@ -79,7 +71,7 @@ func (rt *Router) setOpenApi3Vaildator() error {
 			next.ServeHTTP(rec, r)
 
 			if !rt.skipValidateResponse {
-				_, errs := rv.ValidateResponseBody(r, rec.toResponse())
+				_, errs := v.ValidateHttpResponse(r, rec.toResponse())
 				if len(errs) > 0 {
 					var err error
 					for _, e := range errs {
