@@ -12,12 +12,18 @@ import (
 	"github.com/pb33f/libopenapi/datamodel"
 )
 
+const (
+	openAPIVersion3 = 3
+	openAPIVersion2 = 2
+)
+
 type config struct {
 	useTLS                              bool
 	cacert, cert, key                   []byte
 	clientCacert, clientCert, clientKey []byte
-	openAPI3Doc                         *libopenapi.Document
-	openAPI3Validator                   *validator.Validator
+	openAPIVersion                      int
+	openAPIDoc                          *libopenapi.Document
+	openAPIValidator                    *validator.Validator
 	skipValidateRequest                 bool
 	skipValidateResponse                bool
 }
@@ -68,8 +74,9 @@ func OpenApi3(l string) Option {
 			}
 			return err
 		}
-		c.openAPI3Doc = &doc
-		c.openAPI3Validator = &v
+		c.openAPIVersion = openAPIVersion3
+		c.openAPIDoc = &doc
+		c.openAPIValidator = &v
 		return nil
 	}
 }
@@ -92,8 +99,9 @@ func OpenApi3FromData(b []byte) Option {
 			}
 			return err
 		}
-		c.openAPI3Doc = &doc
-		c.openAPI3Validator = &v
+		c.openAPIVersion = openAPIVersion3
+		c.openAPIDoc = &doc
+		c.openAPIValidator = &v
 		return nil
 	}
 }

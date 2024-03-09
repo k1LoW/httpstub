@@ -51,12 +51,12 @@ func (rt *Router) setOpenApi3Vaildator() error {
 	rt.t.Helper()
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
-	if rt.openAPI3Doc == nil {
+	if rt.openAPIDoc == nil || rt.openAPIVersion != openAPIVersion3 {
 		return nil
 	}
 	mw := func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			v := *rt.openAPI3Validator
+			v := *rt.openAPIValidator
 			if !rt.skipValidateRequest {
 				_, errs := v.ValidateHttpRequest(r)
 				if len(errs) > 0 {

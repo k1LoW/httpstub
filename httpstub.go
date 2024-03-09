@@ -53,8 +53,9 @@ type Router struct {
 	useTLS                              bool
 	cacert, cert, key                   []byte
 	clientCacert, clientCert, clientKey []byte
-	openAPI3Doc                         *libopenapi.Document
-	openAPI3Validator                   *validator.Validator
+	openAPIVersion                      int
+	openAPIDoc                          *libopenapi.Document
+	openAPIValidator                    *validator.Validator
 	skipValidateRequest                 bool
 	skipValidateResponse                bool
 	mu                                  sync.RWMutex
@@ -119,16 +120,17 @@ func NewRouter(t TB, opts ...Option) *Router {
 		}
 	}
 	rt := &Router{
-		t:                 t,
-		useTLS:            c.useTLS,
-		cacert:            c.cacert,
-		cert:              c.cert,
-		key:               c.key,
-		clientCacert:      c.clientCacert,
-		clientCert:        c.clientCert,
-		clientKey:         c.clientKey,
-		openAPI3Doc:       c.openAPI3Doc,
-		openAPI3Validator: c.openAPI3Validator,
+		t:                t,
+		useTLS:           c.useTLS,
+		cacert:           c.cacert,
+		cert:             c.cert,
+		key:              c.key,
+		clientCacert:     c.clientCacert,
+		clientCert:       c.clientCert,
+		clientKey:        c.clientKey,
+		openAPIVersion:   c.openAPIVersion,
+		openAPIDoc:       c.openAPIDoc,
+		openAPIValidator: c.openAPIValidator,
 	}
 	if err := rt.setOpenApi3Vaildator(); err != nil {
 		t.Fatal(err)
@@ -456,7 +458,7 @@ func Status(pattern string) responseExampleOption {
 
 // ResponseExample set handler which return response using examples of OpenAPI v3 Document
 func (m *matcher) ResponseExample(opts ...responseExampleOption) {
-	if m.router.openAPI3Doc == nil {
+	if m.router.openAPIDoc == nil || m.router.openAPIVersion != openAPIVersion3 {
 		m.router.t.Error("no OpenAPI v3 document is set")
 		return
 	}
@@ -467,7 +469,7 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 			return
 		}
 	}
-	doc := *m.router.openAPI3Doc
+	doc := *m.router.openAPIDoc
 	v3m, errs := doc.BuildV3Model()
 	if errs != nil {
 		m.router.t.Errorf("failed to build OpenAPI v3 model: %v", errors.Join(errs...))
