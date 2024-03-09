@@ -132,7 +132,7 @@ func NewRouter(t TB, opts ...Option) *Router {
 		openAPIDoc:       c.openAPIDoc,
 		openAPIValidator: c.openAPIValidator,
 	}
-	if err := rt.setOpenApi3Vaildator(); err != nil {
+	if err := rt.setOpenAPIVaildator(); err != nil {
 		t.Fatal(err)
 	}
 	return rt

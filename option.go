@@ -30,8 +30,38 @@ type config struct {
 
 type Option func(*config) error
 
-// OpenApi3 sets OpenAPI Document using file path.
+// OpenAPI3 sets OpenAPI Document v3 using path.
+func OpenAPI3(l string) Option {
+	return func(c *config) error {
+		opt := openAPI(l)
+		if err := opt(c); err != nil {
+			return err
+		}
+		c.openAPIVersion = openAPIVersion3
+		return nil
+	}
+}
+
+// OpenAPI2 sets OpenAPI Document v2 using path.
+func OpenAPI2(l string) Option {
+	return func(c *config) error {
+		opt := openAPI(l)
+		if err := opt(c); err != nil {
+			return err
+		}
+		c.openAPIVersion = openAPIVersion2
+		return nil
+	}
+}
+
+// OpenApi3 sets OpenAPI Document v3 using path.
+// Deprecated: Use OpenAPI3 instead.
 func OpenApi3(l string) Option {
+	return OpenAPI3(l)
+}
+
+// openAPI sets OpenAPI Document using path.
+func openAPI(l string) Option {
 	return func(c *config) error {
 		var doc libopenapi.Document
 		dc := &datamodel.DocumentConfiguration{
@@ -74,15 +104,44 @@ func OpenApi3(l string) Option {
 			}
 			return err
 		}
-		c.openAPIVersion = openAPIVersion3
 		c.openAPIDoc = &doc
 		c.openAPIValidator = &v
 		return nil
 	}
 }
 
-// OpenApi3FromData sets OpenAPI Document from bytes
+// OpenAPI3FromData sets OpenAPI Document v3 from bytes
+func OpenAPI3FromData(b []byte) Option {
+	return func(c *config) error {
+		opt := openAPIFromData(b)
+		if err := opt(c); err != nil {
+			return err
+		}
+		c.openAPIVersion = openAPIVersion3
+		return nil
+	}
+}
+
+// OpenAPI2FromData sets OpenAPI Document v2 from bytes
+func OpenAPI2FromData(b []byte) Option {
+	return func(c *config) error {
+		opt := openAPIFromData(b)
+		if err := opt(c); err != nil {
+			return err
+		}
+		c.openAPIVersion = openAPIVersion2
+		return nil
+	}
+}
+
+// OpenApi3FromData sets OpenAPI Document v3 from bytes
+// Deprecated: Use OpenAPI3FromData instead.
 func OpenApi3FromData(b []byte) Option {
+	return OpenAPI3FromData(b)
+}
+
+// openAPIFromData sets OpenAPI Document from bytes
+func openAPIFromData(b []byte) Option {
 	return func(c *config) error {
 		doc, err := libopenapi.NewDocument(b)
 		if err != nil {
@@ -99,7 +158,6 @@ func OpenApi3FromData(b []byte) Option {
 			}
 			return err
 		}
-		c.openAPIVersion = openAPIVersion3
 		c.openAPIDoc = &doc
 		c.openAPIValidator = &v
 		return nil

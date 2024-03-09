@@ -47,11 +47,11 @@ func (r *recorder) toResponse() *http.Response {
 	}
 }
 
-func (rt *Router) setOpenApi3Vaildator() error {
+func (rt *Router) setOpenAPIVaildator() error {
 	rt.t.Helper()
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
-	if rt.openAPIDoc == nil || rt.openAPIVersion != openAPIVersion3 {
+	if rt.openAPIDoc == nil {
 		return nil
 	}
 	mw := func(next http.HandlerFunc) http.HandlerFunc {

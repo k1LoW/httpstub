@@ -1,0 +1,179 @@
+swagger: 2.0
+info:
+  title: test spec
+  version: 0.0.1
+host: 'example.com'
+basePath: '/api/v1'
+schemes:
+  - https
+  - http
+consumes:
+  - application/json
+  - application/x-www-form-urlencoded
+  - multipart/form-data
+paths:
+  /users:
+    get:
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                username:
+                  type: string
+        '404':
+          description: Error
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              required:
+                - error
+    post:
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: User
+          required: true
+          schema:
+            type: object
+            properties:
+              username:
+                type: string
+              password:
+                type: string
+            required:
+              - username
+              - password
+      responses:
+        '201':
+          description: OK
+        '400':
+          description: Error
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              required:
+                - error
+  /users/{id}:
+    get:
+      produces:
+        - application/json
+      parameters:
+        - description: ID
+          explode: false
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              username:
+                type: string
+  /help:
+    post:
+      comsumes:
+        - application/x-www-form-urlencoded
+      produces:
+        - application/json
+      parameters:
+        - name: name
+          in: formData
+          description: Name
+          required: true
+          type: string
+        - name: content
+          in: formData
+          description: Content
+          required: true
+          type: string
+      responses:
+        '201':
+          description: OK
+        '400':
+          description: Error
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              required:
+                - error
+  /upload:
+    post:
+      consumes:
+        - multipart/form-data
+      parameters:
+        - name: username
+          in: formData
+          description: Username
+          required: true
+          
+        - name: upload0
+          in: formData
+          description: Upload0
+          required: true
+          type: file
+          format: binary
+        - name: upload1
+          in: formData
+          description: Upload1
+          required: true
+          type: file
+          format: binary
+      responses:
+        '201':
+          description: OK
+  /notfound:
+    get:
+      responses:
+        '404':
+          description: Notfound
+  /private:
+    get:
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Error
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              required:
+                - error
+  /redirect:
+    get:
+      responses:
+        '302':
+          description: Found
+        '404':
+          description: Notfound
+  /ping:
+    get:
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              content:
+                type: string
