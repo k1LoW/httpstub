@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	validator "github.com/pb33f/libopenapi-validator"
 	verrors "github.com/pb33f/libopenapi-validator/errors"
 	"gopkg.in/yaml.v3"
 )
@@ -65,6 +66,17 @@ func (rt *Router) setOpenApi3Vaildator() error {
 			if !rt.skipValidateRequest {
 				_, errs := v.ValidateHttpRequest(r)
 				if len(errs) > 0 {
+					{
+						// renew validator (workaround)
+						// ref: https://github.com/k1LoW/runn/issues/882
+						vv, errrs := validator.NewValidator(*rt.openAPI3Doc)
+						if len(errrs) > 0 {
+							rt.t.Errorf("failed to renew validator: %v", errors.Join(errrs...))
+							return
+						}
+						rt.openAPI3Validator = &vv
+						v = *rt.openAPI3Validator
+					}
 					var err error
 					for _, e := range errs {
 						// nullable type workaround.
@@ -82,6 +94,16 @@ func (rt *Router) setOpenApi3Vaildator() error {
 			if !rt.skipValidateResponse {
 				_, errs := v.ValidateHttpResponse(r, rec.toResponse())
 				if len(errs) > 0 {
+					{
+						// renew validator (workaround)
+						// ref: https://github.com/k1LoW/runn/issues/882
+						vv, errrs := validator.NewValidator(*rt.openAPI3Doc)
+						if len(errrs) > 0 {
+							rt.t.Errorf("failed to renew validator: %v", errors.Join(errrs...))
+							return
+						}
+						rt.openAPI3Validator = &vv
+					}
 					var err error
 					for _, e := range errs {
 						// nullable type workaround.
