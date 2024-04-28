@@ -5,6 +5,11 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
+
+	verrors "github.com/pb33f/libopenapi-validator/errors"
+	"gopkg.in/yaml.v3"
 )
 
 var _ http.ResponseWriter = (*recorder)(nil)
@@ -62,6 +67,10 @@ func (rt *Router) setOpenApi3Vaildator() error {
 				if len(errs) > 0 {
 					var err error
 					for _, e := range errs {
+						// nullable type workaround.
+						if nullableError(e) {
+							continue
+						}
 						err = errors.Join(err, e)
 					}
 					rt.t.Errorf("failed to validate response: %v", err)
@@ -75,6 +84,10 @@ func (rt *Router) setOpenApi3Vaildator() error {
 				if len(errs) > 0 {
 					var err error
 					for _, e := range errs {
+						// nullable type workaround.
+						if nullableError(e) {
+							continue
+						}
 						err = errors.Join(err, e)
 					}
 					rt.t.Errorf("failed to validate response: %v", err)
@@ -84,4 +97,66 @@ func (rt *Router) setOpenApi3Vaildator() error {
 	}
 	rt.middlewares = append(rt.middlewares, mw)
 	return nil
+}
+
+// nullableTypeError returns whether the error is nullable type error or not.
+func nullableError(e *verrors.ValidationError) bool {
+	if len(e.SchemaValidationErrors) > 0 {
+		for _, ve := range e.SchemaValidationErrors {
+			if strings.HasSuffix(ve.Reason, "but got null") && strings.HasSuffix(ve.Location, "/type") {
+				if nullableType(ve.ReferenceSchema, ve.Location) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// nullableType returns whether the type is nullable or not.
+func nullableType(schema, location string) bool {
+	splitted := strings.Split(strings.TrimPrefix(strings.TrimSuffix(location, "/type")+"/nullable", "/"), "/")
+	m := map[string]any{}
+	if err := yaml.Unmarshal([]byte(schema), &m); err != nil {
+		return false
+	}
+	v, ok := valueWithKeys(m, splitted...)
+	if !ok {
+		return false
+	}
+	if tf, ok := v.(bool); ok {
+		return tf
+	}
+	return false
+}
+
+func valueWithKeys(m any, keys ...string) (any, bool) {
+	if len(keys) == 0 {
+		return nil, false
+	}
+	switch m := m.(type) {
+	case map[string]any:
+		if v, ok := m[keys[0]]; ok {
+			if len(keys) == 1 {
+				return v, true
+			}
+			return valueWithKeys(v, keys[1:]...)
+		}
+	case []any:
+		i, err := strconv.Atoi(keys[0])
+		if err != nil {
+			return nil, false
+		}
+		if i < 0 || i >= len(m) {
+			return nil, false
+		}
+		v := m[i]
+		if len(keys) == 1 {
+			return v, true
+		}
+		return valueWithKeys(v, keys[1:]...)
+	default:
+		return nil, false
+	}
+	return nil, false
 }
