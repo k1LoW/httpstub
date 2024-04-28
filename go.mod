@@ -7,6 +7,7 @@ require (
 	github.com/minio/pkg v1.7.5
 	github.com/pb33f/libopenapi v0.16.2
 	github.com/pb33f/libopenapi-validator v0.0.49
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -22,5 +23,4 @@ require (
 	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
