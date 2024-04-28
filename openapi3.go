@@ -103,7 +103,6 @@ func (rt *Router) setOpenApi3Vaildator() error {
 							return
 						}
 						rt.openAPI3Validator = &vv
-						v = *rt.openAPI3Validator
 					}
 					var err error
 					for _, e := range errs {
