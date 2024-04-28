@@ -1,5 +1,12 @@
 # Changelog
 
+## [v0.16.0](https://github.com/k1LoW/httpstub/compare/v0.15.2...v0.16.0) - 2024-04-28
+### Fix bug 🐛
+- Add workaround for invalid validator instance after validation error by @k1LoW in https://github.com/k1LoW/httpstub/pull/47
+### Other Changes
+- Support nullable fields in OpenAPI 3 by @k1LoW in https://github.com/k1LoW/httpstub/pull/45
+- Update pkgs by @k1LoW in https://github.com/k1LoW/httpstub/pull/48
+
 ## [v0.15.2](https://github.com/k1LoW/httpstub/compare/v0.15.1...v0.15.2) - 2024-04-24
 ### Other Changes
 - chore(deps): bump the dependencies group with 2 updates by @dependabot in https://github.com/k1LoW/httpstub/pull/42
