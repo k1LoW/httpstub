@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.16.1](https://github.com/k1LoW/httpstub/compare/v0.16.0...v0.16.1) - 2024-04-29
+### Other Changes
+- chore(deps): bump github.com/pb33f/libopenapi-validator from 0.0.50 to 0.0.51 in the dependencies group by @dependabot in https://github.com/k1LoW/httpstub/pull/49
+
 ## [v0.16.0](https://github.com/k1LoW/httpstub/compare/v0.15.2...v0.16.0) - 2024-04-28
 ### Fix bug 🐛
 - Add workaround for invalid validator instance after validation error by @k1LoW in https://github.com/k1LoW/httpstub/pull/47
