@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.16.2](https://github.com/k1LoW/httpstub/compare/v0.16.1...v0.16.2) - 2024-05-06
+### Other Changes
+- chore(deps): bump the dependencies group with 2 updates by @dependabot in https://github.com/k1LoW/httpstub/pull/51
+
 ## [v0.16.1](https://github.com/k1LoW/httpstub/compare/v0.16.0...v0.16.1) - 2024-04-29
 ### Other Changes
 - chore(deps): bump github.com/pb33f/libopenapi-validator from 0.0.50 to 0.0.51 in the dependencies group by @dependabot in https://github.com/k1LoW/httpstub/pull/49
