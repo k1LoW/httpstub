@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.16.3](https://github.com/k1LoW/httpstub/compare/v0.16.2...v0.16.3) - 2024-05-13
+### Other Changes
+- chore(deps): bump the dependencies group with 2 updates by @dependabot in https://github.com/k1LoW/httpstub/pull/53
+
 ## [v0.16.2](https://github.com/k1LoW/httpstub/compare/v0.16.1...v0.16.2) - 2024-05-06
 ### Other Changes
 - chore(deps): bump the dependencies group with 2 updates by @dependabot in https://github.com/k1LoW/httpstub/pull/51
