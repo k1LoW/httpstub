@@ -20,9 +20,18 @@ type config struct {
 	openAPI3Validator                   *validator.Validator
 	skipValidateRequest                 bool
 	skipValidateResponse                bool
+	reversedMatchingOrder               bool
 }
 
 type Option func(*config) error
+
+// ReversedMatchingOrder reverses matching order.
+func ReversedMatchingOrder() Option {
+	return func(c *config) error {
+		c.reversedMatchingOrder = true
+		return nil
+	}
+}
 
 // OpenApi3 sets OpenAPI Document using file path.
 func OpenApi3(l string) Option {

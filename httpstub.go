@@ -57,6 +57,7 @@ type Router struct {
 	openAPI3Validator                   *validator.Validator
 	skipValidateRequest                 bool
 	skipValidateResponse                bool
+	reversedMatchingOrder               bool
 	mu                                  sync.RWMutex
 }
 
@@ -87,7 +88,12 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rt.requests = append(rt.requests, r2)
 	rt.mu.Unlock()
 
-	for _, m := range rt.matchers {
+	for i := range rt.matchers {
+		m := rt.matchers[i]
+		if rt.reversedMatchingOrder {
+			m = rt.matchers[len(rt.matchers)-1-i]
+		}
+
 		match := true
 		for _, fn := range m.matchFuncs {
 			if !fn(r) {
@@ -119,16 +125,17 @@ func NewRouter(t TB, opts ...Option) *Router {
 		}
 	}
 	rt := &Router{
-		t:                 t,
-		useTLS:            c.useTLS,
-		cacert:            c.cacert,
-		cert:              c.cert,
-		key:               c.key,
-		clientCacert:      c.clientCacert,
-		clientCert:        c.clientCert,
-		clientKey:         c.clientKey,
-		openAPI3Doc:       c.openAPI3Doc,
-		openAPI3Validator: c.openAPI3Validator,
+		t:                     t,
+		useTLS:                c.useTLS,
+		cacert:                c.cacert,
+		cert:                  c.cert,
+		key:                   c.key,
+		clientCacert:          c.clientCacert,
+		clientCert:            c.clientCert,
+		clientKey:             c.clientKey,
+		openAPI3Doc:           c.openAPI3Doc,
+		openAPI3Validator:     c.openAPI3Validator,
+		reversedMatchingOrder: c.reversedMatchingOrder,
 	}
 	if err := rt.setOpenApi3Vaildator(); err != nil {
 		t.Fatal(err)

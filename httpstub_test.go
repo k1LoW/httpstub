@@ -630,6 +630,53 @@ func TestClientCertififaces(t *testing.T) {
 	}
 }
 
+func TestReversedMatchingOrder(t *testing.T) {
+	rt := NewRouter(t, ReversedMatchingOrder())
+	rt.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
+	rt.Method(http.MethodPost).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"bob"}`)
+	rt.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"bob"}`)
+	ts := rt.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+
+	{
+		res, err := tc.Get("http://example.com/api/v1/users/1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+	}
+	{
+		res, err := tc.Post("http://example.com/api/v1/users/1", "application/json", strings.NewReader(`{"name":"bob"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+	}
+	{
+		res, err := tc.Get("http://example.com/api/v1/users/1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			res.Body.Close()
+		})
+
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		got := string(body)
+		want := `{"name":"bob"}`
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+}
+
 func TestClearRequests(t *testing.T) {
 	tests := []struct {
 		clearFunc func(*Router, *matcher)
