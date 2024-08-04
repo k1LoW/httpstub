@@ -5,7 +5,7 @@ go 1.21.12
 require (
 	github.com/golang/mock v1.6.0
 	github.com/minio/pkg v1.7.5
-	github.com/pb33f/libopenapi v0.16.10
+	github.com/pb33f/libopenapi v0.16.11
 	github.com/pb33f/libopenapi-validator v0.1.0
 	gopkg.in/yaml.v3 v3.0.1
 )
