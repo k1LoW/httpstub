@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.16.7](https://github.com/k1LoW/httpstub/compare/v0.16.6...v0.16.7) - 2024-08-05
+### Other Changes
+- chore(deps): bump github.com/pb33f/libopenapi from 0.16.10 to 0.16.11 in the dependencies group by @dependabot in https://github.com/k1LoW/httpstub/pull/64
+
 ## [v0.16.6](https://github.com/k1LoW/httpstub/compare/v0.16.5...v0.16.6) - 2024-07-15
 ### Other Changes
 - Update go version by @k1LoW in https://github.com/k1LoW/httpstub/pull/62
