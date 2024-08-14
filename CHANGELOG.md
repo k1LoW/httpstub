@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.16.8](https://github.com/k1LoW/httpstub/compare/v0.16.7...v0.16.8) - 2024-08-14
+### Other Changes
+- Update go version by @k1LoW in https://github.com/k1LoW/httpstub/pull/67
+- chore(deps): bump github.com/pb33f/libopenapi from 0.16.11 to 0.16.14 in the dependencies group by @dependabot in https://github.com/k1LoW/httpstub/pull/66
+- chore(deps): bump golang.org/x/net from 0.8.0 to 0.23.0 by @dependabot in https://github.com/k1LoW/httpstub/pull/69
+
 ## [v0.16.7](https://github.com/k1LoW/httpstub/compare/v0.16.6...v0.16.7) - 2024-08-05
 ### Other Changes
 - chore(deps): bump github.com/pb33f/libopenapi from 0.16.10 to 0.16.11 in the dependencies group by @dependabot in https://github.com/k1LoW/httpstub/pull/64
