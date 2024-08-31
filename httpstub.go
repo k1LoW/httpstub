@@ -53,8 +53,8 @@ type Router struct {
 	useTLS                              bool
 	cacert, cert, key                   []byte
 	clientCacert, clientCert, clientKey []byte
-	openAPI3Doc                         *libopenapi.Document
-	openAPI3Validator                   *validator.Validator
+	openAPI3Doc                         libopenapi.Document
+	openAPI3Validator                   validator.Validator
 	skipValidateRequest                 bool
 	skipValidateResponse                bool
 	mu                                  sync.RWMutex
@@ -113,6 +113,19 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func NewRouter(t TB, opts ...Option) *Router {
 	t.Helper()
 	c := &config{}
+
+	// Set skipCircularReferenceCheck first
+	for _, opt := range opts {
+		tmp := &config{}
+		_ = opt(tmp)
+		if tmp.skipCircularReferenceCheck {
+			if err := opt(c); err != nil {
+				t.Fatal(err)
+			}
+			break
+		}
+	}
+
 	for _, opt := range opts {
 		if err := opt(c); err != nil {
 			t.Fatal(err)
@@ -469,7 +482,7 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 			return
 		}
 	}
-	doc := *m.router.openAPI3Doc
+	doc := m.router.openAPI3Doc
 	v3m, errs := doc.BuildV3Model()
 	if errs != nil {
 		m.router.t.Errorf("failed to build OpenAPI v3 model: %v", errors.Join(errs...))

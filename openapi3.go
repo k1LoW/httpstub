@@ -62,20 +62,20 @@ func (rt *Router) setOpenApi3Vaildator() error {
 	}
 	mw := func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			v := *rt.openAPI3Validator
+			v := rt.openAPI3Validator
 			if !rt.skipValidateRequest {
 				_, errs := v.ValidateHttpRequest(r)
 				if len(errs) > 0 {
 					{
 						// renew validator (workaround)
 						// ref: https://github.com/k1LoW/runn/issues/882
-						vv, errrs := validator.NewValidator(*rt.openAPI3Doc)
+						vv, errrs := validator.NewValidator(rt.openAPI3Doc)
 						if len(errrs) > 0 {
 							rt.t.Errorf("failed to renew validator: %v", errors.Join(errrs...))
 							return
 						}
-						rt.openAPI3Validator = &vv
-						v = *rt.openAPI3Validator
+						rt.openAPI3Validator = vv
+						v = rt.openAPI3Validator
 					}
 					var err error
 					for _, e := range errs {
@@ -97,12 +97,12 @@ func (rt *Router) setOpenApi3Vaildator() error {
 					{
 						// renew validator (workaround)
 						// ref: https://github.com/k1LoW/runn/issues/882
-						vv, errrs := validator.NewValidator(*rt.openAPI3Doc)
+						vv, errrs := validator.NewValidator(rt.openAPI3Doc)
 						if len(errrs) > 0 {
 							rt.t.Errorf("failed to renew validator: %v", errors.Join(errrs...))
 							return
 						}
-						rt.openAPI3Validator = &vv
+						rt.openAPI3Validator = vv
 					}
 					var err error
 					for _, e := range errs {
