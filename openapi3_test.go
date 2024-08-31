@@ -1,6 +1,7 @@
 package httpstub
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -25,12 +26,11 @@ func TestOpenAPI3(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			mockTB := mock_httpstub.NewMockTB(ctrl)
-			mockTB.EXPECT().Helper()
+			mockTB.EXPECT().Helper().AnyTimes()
 			if tt.wantErr {
 				mockTB.EXPECT().Errorf(gomock.Any(), gomock.Any())
 			}
-			rt := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
-			rt.t = mockTB
+			rt := NewRouter(mockTB, OpenApi3("testdata/openapi3.yml"))
 			rt.Method(http.MethodPost).Path("/api/v1/users").Header("Content-Type", "application/json").ResponseString(http.StatusCreated, `{"name":"alice"}`)
 			// invalid response
 			rt.Method(http.MethodGet).Path("/api/v1/users").Header("Content-Type", "application/json").ResponseString(http.StatusBadRequest, `{"invalid":"data"}`)
@@ -40,6 +40,39 @@ func TestOpenAPI3(t *testing.T) {
 			})
 			tc := ts.Client()
 			if _, err := tc.Do(tt.req); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+}
+
+func TestSkipCircularReferenceCheck(t *testing.T) {
+	tests := []struct {
+		skipCircularReferenceCheck bool
+		wantErr                    bool
+	}{
+		{false, true},
+		{true, false},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("skipCircularReferenceCheck=%v", tt.skipCircularReferenceCheck), func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockTB := mock_httpstub.NewMockTB(ctrl)
+			mockTB.EXPECT().Helper().AnyTimes()
+			if tt.wantErr {
+				mockTB.EXPECT().Fatal(gomock.Any())
+			}
+			rt := NewRouter(mockTB, OpenApi3("testdata/openapi3-circular-references.yml"), SkipCircularReferenceCheck(tt.skipCircularReferenceCheck), SkipValidateResponse(true))
+			// invalid response
+			rt.Method(http.MethodGet).Path("/api/hello").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"rows":[]}`)
+			ts := rt.Server()
+			t.Cleanup(func() {
+				ts.Close()
+			})
+			tc := ts.Client()
+			req := newRequest(t, http.MethodGet, "/api/hello", "")
+			if _, err := tc.Do(req); err != nil {
 				t.Error(err)
 			}
 		})

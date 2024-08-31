@@ -16,10 +16,11 @@ type config struct {
 	useTLS                              bool
 	cacert, cert, key                   []byte
 	clientCacert, clientCert, clientKey []byte
-	openAPI3Doc                         *libopenapi.Document
-	openAPI3Validator                   *validator.Validator
+	openAPI3Doc                         libopenapi.Document
+	openAPI3Validator                   validator.Validator
 	skipValidateRequest                 bool
 	skipValidateResponse                bool
+	skipCircularReferenceCheck          bool
 }
 
 type Option func(*config) error
@@ -29,8 +30,9 @@ func OpenApi3(l string) Option {
 	return func(c *config) error {
 		var doc libopenapi.Document
 		dc := &datamodel.DocumentConfiguration{
-			AllowFileReferences:   true,
-			AllowRemoteReferences: true,
+			AllowFileReferences:        true,
+			AllowRemoteReferences:      true,
+			SkipCircularReferenceCheck: c.skipCircularReferenceCheck,
 		}
 		switch {
 		case strings.HasPrefix(l, "https://") || strings.HasPrefix(l, "http://"):
@@ -68,8 +70,8 @@ func OpenApi3(l string) Option {
 			}
 			return err
 		}
-		c.openAPI3Doc = &doc
-		c.openAPI3Validator = &v
+		c.openAPI3Doc = doc
+		c.openAPI3Validator = v
 		return nil
 	}
 }
@@ -77,7 +79,12 @@ func OpenApi3(l string) Option {
 // OpenApi3FromData sets OpenAPI Document from bytes
 func OpenApi3FromData(b []byte) Option {
 	return func(c *config) error {
-		doc, err := libopenapi.NewDocument(b)
+		dc := &datamodel.DocumentConfiguration{
+			AllowFileReferences:        true,
+			AllowRemoteReferences:      true,
+			SkipCircularReferenceCheck: c.skipCircularReferenceCheck,
+		}
+		doc, err := libopenapi.NewDocumentWithConfiguration(b, dc)
 		if err != nil {
 			return err
 		}
@@ -92,8 +99,8 @@ func OpenApi3FromData(b []byte) Option {
 			}
 			return err
 		}
-		c.openAPI3Doc = &doc
-		c.openAPI3Validator = &v
+		c.openAPI3Doc = doc
+		c.openAPI3Validator = v
 		return nil
 	}
 }
@@ -110,6 +117,14 @@ func SkipValidateRequest(skip bool) Option {
 func SkipValidateResponse(skip bool) Option {
 	return func(c *config) error {
 		c.skipValidateResponse = skip
+		return nil
+	}
+}
+
+// SkipCircularReferenceCheck sets whether to skip circular reference check in OpenAPI Document.
+func SkipCircularReferenceCheck(skip bool) Option {
+	return func(c *config) error {
+		c.skipCircularReferenceCheck = skip
 		return nil
 	}
 }
