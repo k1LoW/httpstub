@@ -119,16 +119,18 @@ func NewRouter(t TB, opts ...Option) *Router {
 		}
 	}
 	rt := &Router{
-		t:                 t,
-		useTLS:            c.useTLS,
-		cacert:            c.cacert,
-		cert:              c.cert,
-		key:               c.key,
-		clientCacert:      c.clientCacert,
-		clientCert:        c.clientCert,
-		clientKey:         c.clientKey,
-		openAPI3Doc:       c.openAPI3Doc,
-		openAPI3Validator: c.openAPI3Validator,
+		t:                    t,
+		useTLS:               c.useTLS,
+		cacert:               c.cacert,
+		cert:                 c.cert,
+		key:                  c.key,
+		clientCacert:         c.clientCacert,
+		clientCert:           c.clientCert,
+		clientKey:            c.clientKey,
+		openAPI3Doc:          c.openAPI3Doc,
+		openAPI3Validator:    c.openAPI3Validator,
+		skipValidateRequest:  c.skipValidateRequest,
+		skipValidateResponse: c.skipValidateResponse,
 	}
 	if err := rt.setOpenApi3Vaildator(); err != nil {
 		t.Fatal(err)
