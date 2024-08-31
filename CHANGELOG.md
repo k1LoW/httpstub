@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.17.0](https://github.com/k1LoW/httpstub/compare/v0.16.8...v0.17.0) - 2024-08-31
+### New Features 🎉
+- Add SkipCircularReferenceCheck option by @k1LoW in https://github.com/k1LoW/httpstub/pull/72
+### Fix bug 🐛
+- Fix SkipValidate* by @k1LoW in https://github.com/k1LoW/httpstub/pull/70
+
 ## [v0.16.8](https://github.com/k1LoW/httpstub/compare/v0.16.7...v0.16.8) - 2024-08-14
 ### Other Changes
 - Update go version by @k1LoW in https://github.com/k1LoW/httpstub/pull/67
