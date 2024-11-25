@@ -802,6 +802,59 @@ func TestRouterResponseExample(t *testing.T) {
 	}
 }
 
+func TestPrepend(t *testing.T) {
+	t.Run("Default", func(t *testing.T) {
+		rt := NewRouter(t)
+		rt.Path("/api/v1/users/1").Response(http.StatusAccepted, []byte(`{"message":"accepted"}`))
+		rt.Path("/api/v1/users/1").Response(http.StatusOK, []byte(`{"message":"ok"}`))
+		ts := rt.Server()
+		t.Cleanup(func() {
+			ts.Close()
+		})
+		tc := ts.Client()
+
+		res, err := tc.Get("https://example.com/api/v1/users/1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			res.Body.Close()
+		})
+
+		got := res.StatusCode
+		want := http.StatusAccepted
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	})
+
+	t.Run("Prepend", func(t *testing.T) {
+		rt := NewRouter(t)
+		rt.Path("/api/v1/users/1").Response(http.StatusAccepted, []byte(`{"message":"accepted"}`))
+		rt.Prepend().Path("/api/v1/users/1").Response(http.StatusOK, []byte(`{"message":"ok"}`))
+		rt.Path("/api/v1/users/1").Response(http.StatusNotFound, []byte(`{"message":"not found"}`))
+		ts := rt.Server()
+		t.Cleanup(func() {
+			ts.Close()
+		})
+		tc := ts.Client()
+
+		res, err := tc.Get("https://example.com/api/v1/users/1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			res.Body.Close()
+		})
+
+		got := res.StatusCode
+		want := http.StatusOK
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	})
+}
+
 func TestURL(t *testing.T) {
 	rt := NewRouter(t)
 	{
