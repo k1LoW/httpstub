@@ -57,6 +57,7 @@ type Router struct {
 	openAPI3Validator                   validator.Validator
 	skipValidateRequest                 bool
 	skipValidateResponse                bool
+	prependOnce                         bool
 	mu                                  sync.RWMutex
 }
 
@@ -280,7 +281,7 @@ func (rt *Router) Match(fn func(r *http.Request) bool) *matcher {
 	}
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
-	rt.matchers = append(rt.matchers, m)
+	rt.addMatcher(m)
 	return m
 }
 
@@ -301,7 +302,7 @@ func (rt *Router) Method(method string) *matcher {
 		matchFuncs: []matchFunc{fn},
 		router:     rt,
 	}
-	rt.matchers = append(rt.matchers, m)
+	rt.addMatcher(m)
 	return m
 }
 
@@ -322,7 +323,7 @@ func (rt *Router) Path(path string) *matcher {
 	m := &matcher{
 		matchFuncs: []matchFunc{fn},
 	}
-	rt.matchers = append(rt.matchers, m)
+	rt.addMatcher(m)
 	return m
 }
 
@@ -353,7 +354,7 @@ func (rt *Router) Query(key, value string) *matcher {
 	m := &matcher{
 		matchFuncs: []matchFunc{fn},
 	}
-	rt.matchers = append(rt.matchers, m)
+	rt.addMatcher(m)
 	return m
 }
 
@@ -561,7 +562,7 @@ func (rt *Router) ResponseExample(opts ...responseExampleOption) {
 	}
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
-	rt.matchers = append(rt.matchers, m)
+	rt.addMatcher(m)
 	m.ResponseExample(opts...)
 }
 
@@ -577,6 +578,14 @@ func (m *matcher) Requests() []*http.Request {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.requests
+}
+
+// Prepend prepend matcher.
+func (rt *Router) Prepend() *Router {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
+	rt.prependOnce = true
+	return rt
 }
 
 // ClearRequests clear []*http.Request received by router.
@@ -605,6 +614,15 @@ L:
 	}
 	m.router.requests = requests
 	m.requests = nil
+}
+
+func (rt *Router) addMatcher(m *matcher) {
+	if rt.prependOnce {
+		rt.matchers = append([]*matcher{m}, rt.matchers...)
+		rt.prependOnce = false
+		return
+	}
+	rt.matchers = append(rt.matchers, m)
 }
 
 func cloneReq(r *http.Request) *http.Request {
