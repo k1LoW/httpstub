@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.18.0](https://github.com/k1LoW/httpstub/compare/v0.17.0...v0.18.0) - 2024-11-25
+### New Features 🎉
+- Add Prepend() for prepending matcher. by @k1LoW in https://github.com/k1LoW/httpstub/pull/79
+
 ## [v0.17.0](https://github.com/k1LoW/httpstub/compare/v0.16.8...v0.17.0) - 2024-08-31
 ### New Features 🎉
 - Add SkipCircularReferenceCheck option by @k1LoW in https://github.com/k1LoW/httpstub/pull/72
