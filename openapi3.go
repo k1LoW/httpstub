@@ -125,10 +125,8 @@ func (rt *Router) setOpenApi3Vaildator() error {
 func nullableError(e *verrors.ValidationError) bool {
 	if len(e.SchemaValidationErrors) > 0 {
 		for _, ve := range e.SchemaValidationErrors {
-			if strings.HasSuffix(ve.Reason, "but got null") && strings.HasSuffix(ve.Location, "/type") {
-				if nullableType(ve.ReferenceSchema, ve.Location) {
-					return true
-				}
+			if strings.HasPrefix(ve.Reason, "got null,") && strings.HasSuffix(ve.Location, "/type") {
+				return nullableType(ve.ReferenceSchema, ve.Location)
 			}
 		}
 	}
