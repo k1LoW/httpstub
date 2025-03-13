@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.20.0](https://github.com/k1LoW/httpstub/compare/v0.19.2...v0.20.0) - 2025-03-13
+### Other Changes
+- chore(deps): bump golang.org/x/net from 0.33.0 to 0.36.0 by @dependabot in https://github.com/k1LoW/httpstub/pull/88
+
 ## [v0.19.2](https://github.com/k1LoW/httpstub/compare/v0.19.1...v0.19.2) - 2025-03-10
 ### Other Changes
 - chore(deps): bump github.com/pb33f/libopenapi from 0.21.7 to 0.21.8 in the dependencies group by @dependabot in https://github.com/k1LoW/httpstub/pull/85
