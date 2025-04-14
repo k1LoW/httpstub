@@ -2,8 +2,10 @@ package httpstub
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -36,6 +38,12 @@ func OpenApi3(l string) Option {
 		}
 		switch {
 		case strings.HasPrefix(l, "https://") || strings.HasPrefix(l, "http://"):
+			// Add URL validation
+			if _, err := url.Parse(l); err != nil {
+				return fmt.Errorf("invalid URL: %w", err)
+			}
+
+			// #nosec G107 - URL is validated
 			res, err := http.Get(l)
 			if err != nil {
 				return err
@@ -76,7 +84,7 @@ func OpenApi3(l string) Option {
 	}
 }
 
-// OpenApi3FromData sets OpenAPI Document from bytes
+// OpenApi3FromData sets OpenAPI Document from bytes.
 func OpenApi3FromData(b []byte) Option {
 	return func(c *config) error {
 		dc := &datamodel.DocumentConfiguration{
@@ -129,7 +137,7 @@ func SkipCircularReferenceCheck(skip bool) Option {
 	}
 }
 
-// UseTLS enable TLS
+// UseTLS enable TLS.
 func UseTLS() Option {
 	return func(c *config) error {
 		c.useTLS = true
@@ -137,7 +145,7 @@ func UseTLS() Option {
 	}
 }
 
-// Certificates set certificates ( cert, key )
+// Certificates set certificates ( cert, key ).
 func Certificates(cert, key []byte) Option {
 	return func(c *config) error {
 		c.cert = cert
@@ -146,7 +154,7 @@ func Certificates(cert, key []byte) Option {
 	}
 }
 
-// CACert set CA
+// CACert set CA.
 func CACert(cacert []byte) Option {
 	return func(c *config) error {
 		c.cacert = cacert
@@ -154,7 +162,7 @@ func CACert(cacert []byte) Option {
 	}
 }
 
-// UseTLSWithCertificates enable TLS with certificates ( cert, key )
+// UseTLSWithCertificates enable TLS with certificates ( cert, key ).
 func UseTLSWithCertificates(cert, key []byte) Option {
 	return func(c *config) error {
 		c.useTLS = true
@@ -164,7 +172,7 @@ func UseTLSWithCertificates(cert, key []byte) Option {
 	}
 }
 
-// ClientCertificates set client certificates ( cert, key )
+// ClientCertificates set client certificates ( cert, key ).
 func ClientCertificates(cert, key []byte) Option {
 	return func(c *config) error {
 		c.clientCert = cert
@@ -173,7 +181,7 @@ func ClientCertificates(cert, key []byte) Option {
 	}
 }
 
-// ClientCACert set client CA
+// ClientCACert set client CA.
 func ClientCACert(cacert []byte) Option {
 	return func(c *config) error {
 		c.clientCacert = cacert

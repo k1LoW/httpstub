@@ -3,13 +3,14 @@ package httpstub
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -237,7 +238,11 @@ func (rt *Router) Server() *httptest.Server {
 				panic("failed to add cacert")
 			}
 			client := rt.server.Client()
-			client.Transport.(*http.Transport).TLSClientConfig.RootCAs = certpool
+			transport, ok := client.Transport.(*http.Transport)
+			if !ok {
+				panic("failed to type assert to *http.Transport")
+			}
+			transport.TLSClientConfig.RootCAs = certpool
 		}
 		// client certificates
 		if rt.clientCert != nil && rt.clientKey != nil {
@@ -246,13 +251,20 @@ func (rt *Router) Server() *httptest.Server {
 				panic(err)
 			}
 			client := rt.server.Client()
-			client.Transport.(*http.Transport).TLSClientConfig.Certificates = []tls.Certificate{cert}
+			transport, ok := client.Transport.(*http.Transport)
+			if !ok {
+				panic("failed to type assert to *http.Transport")
+			}
+			transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
 		}
 	} else {
 		rt.server = httptest.NewServer(rt)
 	}
 	client := rt.server.Client()
-	tp := client.Transport.(*http.Transport)
+	tp, ok := client.Transport.(*http.Transport)
+	if !ok {
+		panic("failed to type assert to *http.Transport")
+	}
 	client.Transport = newTransport(rt.server.URL, tp)
 	rt.URL = rt.server.URL
 	return rt.server
@@ -264,7 +276,7 @@ func (rt *Router) TLSServer() *httptest.Server {
 	return rt.Server()
 }
 
-// Close shuts down *httptest.Server
+// Close shuts down *httptest.Server.
 func (rt *Router) Close() {
 	if rt.server == nil {
 		rt.t.Error("server is not started yet")
@@ -462,7 +474,7 @@ func newResponseExampleConfig() *responseExampleConfig {
 
 type responseExampleOption func(c *responseExampleConfig) error
 
-// Status specify the example response to use by status code
+// Status specify the example response to use by status code.
 func Status(pattern string) responseExampleOption {
 	return func(c *responseExampleConfig) error {
 		c.status = pattern
@@ -470,7 +482,7 @@ func Status(pattern string) responseExampleOption {
 	}
 }
 
-// ResponseExample set handler which return response using examples of OpenAPI v3 Document
+// ResponseExample set handler which return response using examples of OpenAPI v3 Document.
 func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 	if m.router.openAPI3Doc == nil {
 		m.router.t.Error("no OpenAPI v3 document is set")
@@ -554,7 +566,7 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 	m.handler = http.HandlerFunc(fn)
 }
 
-// ResponseExample set handler which return response using examples of OpenAPI v3 Document
+// ResponseExample set handler which return response using examples of OpenAPI v3 Document.
 func (rt *Router) ResponseExample(opts ...responseExampleOption) {
 	m := &matcher{
 		matchFuncs: []matchFunc{func(_ *http.Request) bool { return true }},
@@ -688,7 +700,15 @@ func (t *transport) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func one[K comparable, V *base.Example](m *orderedmap.Map[K, V]) V {
 	l := m.Len()
-	i := rand.Intn(l)
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(l)))
+	if err != nil {
+		// Return the first element if an error occurs
+		for p := range orderedmap.Iterate(context.Background(), m) {
+			return p.Value()
+		}
+		return nil
+	}
+	i := int(n.Int64())
 	for p := range orderedmap.Iterate(context.Background(), m) {
 		if i == 0 {
 			return p.Value()
