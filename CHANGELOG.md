@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.21.0](https://github.com/k1LoW/httpstub/compare/v0.20.2...v0.21.0) - 2025-04-21
+### Other Changes
+- chore(deps): bump github.com/pb33f/libopenapi-validator from 0.3.1 to 0.4.0 in the dependencies group by @dependabot in https://github.com/k1LoW/httpstub/pull/93
+
 ## [v0.20.2](https://github.com/k1LoW/httpstub/compare/v0.20.1...v0.20.2) - 2025-04-18
 ### Other Changes
 - chore(deps): bump golang.org/x/net from 0.36.0 to 0.38.0 by @dependabot in https://github.com/k1LoW/httpstub/pull/91
