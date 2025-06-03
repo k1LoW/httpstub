@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.21.2](https://github.com/k1LoW/httpstub/compare/v0.21.1...v0.21.2) - 2025-06-03
+### Other Changes
+- chore(deps): bump github.com/pb33f/libopenapi from 0.21.9 to 0.21.10 in the dependencies group by @dependabot in https://github.com/k1LoW/httpstub/pull/97
+- chore(deps): bump github.com/pb33f/libopenapi-validator from 0.4.0 to 0.4.1 in the dependencies group by @dependabot in https://github.com/k1LoW/httpstub/pull/99
+- chore(deps): bump the dependencies group with 2 updates by @dependabot in https://github.com/k1LoW/httpstub/pull/100
+- chore(deps): bump github.com/pb33f/libopenapi-validator from 0.4.4 to 0.4.6 in the dependencies group by @dependabot in https://github.com/k1LoW/httpstub/pull/101
+- chore(deps): bump github.com/pb33f/libopenapi from 0.21.12 to 0.22.2 in the dependencies group by @dependabot in https://github.com/k1LoW/httpstub/pull/102
+
 ## [v0.21.1](https://github.com/k1LoW/httpstub/compare/v0.21.0...v0.21.1) - 2025-04-28
 ### Other Changes
 - chore(deps): bump github.com/pb33f/libopenapi from 0.21.8 to 0.21.9 in the dependencies group by @dependabot in https://github.com/k1LoW/httpstub/pull/95
