@@ -1,6 +1,6 @@
 module github.com/k1LoW/httpstub
 
-go 1.23.12
+go 1.24.6
 
 require (
 	github.com/golang/mock v1.6.0
