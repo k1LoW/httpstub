@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.22.1](https://github.com/k1LoW/httpstub/compare/v0.22.0...v0.22.1) - 2025-09-01
+### Other Changes
+- chore(deps): bump github.com/pb33f/libopenapi from 0.25.3 to 0.25.9 in the dependencies group by @dependabot[bot] in https://github.com/k1LoW/httpstub/pull/110
+
 ## [v0.22.0](https://github.com/k1LoW/httpstub/compare/v0.21.3...v0.22.0) - 2025-08-13
 ### Other Changes
 - chore(deps): bump github.com/pb33f/libopenapi from 0.22.3 to 0.23.0 in the dependencies group by @dependabot[bot] in https://github.com/k1LoW/httpstub/pull/105
