@@ -19,6 +19,9 @@ paths:
                   properties:
                     username:
                       type: string
+                    email:
+                      type: string
+                      nullable: true
               examples:
                 ex1:
                   value:
