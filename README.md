@@ -1,3 +1,8 @@
+> [!CAUTION]
+> **Correction of Licensing Error and Request for Action**<br>
+> **Please upgrade version to v0.24.0 or later**<br>
+> For details, see https://github.com/k1LoW/httpstub/issues/118
+
 # httpstub [![Go Reference](https://pkg.go.dev/badge/github.com/k1LoW/httpstub.svg)](https://pkg.go.dev/github.com/k1LoW/httpstub) ![Coverage](https://raw.githubusercontent.com/k1LoW/octocovs/main/badges/k1LoW/httpstub/coverage.svg) ![Code to Test Ratio](https://raw.githubusercontent.com/k1LoW/octocovs/main/badges/k1LoW/httpstub/ratio.svg) ![Test Execution Time](https://raw.githubusercontent.com/k1LoW/octocovs/main/badges/k1LoW/httpstub/time.svg)
 
 httpstub provides router ( `http.Handler` ), server ( `*httptest.Server` ) and client ( `*http.Client` ) for stubbing, for testing in Go.
