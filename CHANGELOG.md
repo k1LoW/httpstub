@@ -1,5 +1,7 @@
 # Changelog
 
+## [v0.24.1](https://github.com/k1LoW/httpstub/compare/v0.24.0...v0.24.1) - 2025-10-08
+
 ## [v0.24.0](https://github.com/k1LoW/httpstub/compare/v0.23.0...v0.24.0) - 2025-10-08
 ### Other Changes
 - fix: use go-wildcard instead by @k1LoW in https://github.com/k1LoW/httpstub/pull/116
