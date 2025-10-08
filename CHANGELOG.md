@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.24.0](https://github.com/k1LoW/httpstub/compare/v0.23.0...v0.24.0) - 2025-10-08
+### Other Changes
+- fix: use go-wildcard instead by @k1LoW in https://github.com/k1LoW/httpstub/pull/116
+
 ## [v0.23.0](https://github.com/k1LoW/httpstub/compare/v0.22.0...v0.23.0) - 2025-10-06
 ### Other Changes
 - chore(deps): bump github.com/pb33f/libopenapi from 0.25.3 to 0.25.9 in the dependencies group by @dependabot[bot] in https://github.com/k1LoW/httpstub/pull/110
