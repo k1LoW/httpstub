@@ -3,8 +3,8 @@ module github.com/k1LoW/httpstub
 go 1.24.7
 
 require (
+	github.com/IGLOU-EU/go-wildcard/v2 v2.1.0
 	github.com/golang/mock v1.6.0
-	github.com/minio/pkg v1.7.5
 	github.com/pb33f/libopenapi v0.27.0
 	github.com/pb33f/libopenapi-validator v0.5.0
 	gopkg.in/yaml.v3 v3.0.1

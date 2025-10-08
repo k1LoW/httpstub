@@ -20,7 +20,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/minio/pkg/wildcard"
+	wildcard "github.com/IGLOU-EU/go-wildcard/v2"
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
 	"github.com/pb33f/libopenapi-validator/paths"
@@ -653,7 +653,7 @@ func methodMatchFunc(method string) matchFunc {
 
 func pathMatchFunc(path string) matchFunc {
 	return func(r *http.Request) bool {
-		return wildcard.MatchSimple(path, r.URL.Path)
+		return wildcard.Match(path, r.URL.Path)
 	}
 }
 
@@ -722,7 +722,7 @@ func one[K comparable, V *base.Example](m *orderedmap.Map[K, V]) V {
 func matchOne(r *v3.Responses, pattern string) (string, *v3.Response) {
 	m := r.Codes
 	for p := range orderedmap.Iterate(context.Background(), m) {
-		if wildcard.MatchSimple(pattern, p.Key()) {
+		if wildcard.Match(pattern, p.Key()) {
 			return p.Key(), p.Value()
 		}
 	}
