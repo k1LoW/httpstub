@@ -1,0 +1,195 @@
+openapi: 3.1.0
+info:
+  title: test spec
+  version: 0.0.1
+servers:
+  - url: 'https://example.com/api/v1'
+paths:
+  /users:
+    get:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    username:
+                      type: string
+                    email:
+                      type: [string, 'null']
+              examples:
+                ex1:
+                  value:
+                    - username: alice
+                    - username: bob
+        '404':
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+              examples:
+                ex1:
+                  value:
+                    error: 'Not found'
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+              required:
+                - username
+                - password
+      responses:
+        '201':
+          description: OK
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+  /users/{id}:
+    get:
+      parameters:
+        - description: ID
+          explode: false
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      username:
+                        type: string
+  /help:
+    post:
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                content:
+                  type: string
+              required:
+                - name
+                - content
+      responses:
+        '201':
+          description: OK
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+  /upload:
+    post:
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              allOf:
+                - $ref: '#/components/schemas/Username'
+                -
+                  properties:
+                    upload0:
+                      type: string
+                      format: binary
+                    upload1:
+                      type: string
+                      format: binary
+            encoding:
+              upload0:
+                contentType: image/png, image/jpeg
+              upload1:
+                contentType: image/png, image/jpeg
+      responses:
+        '201':
+          description: OK
+  /notfound:
+    get:
+      responses:
+        '404':
+          description: Notfound
+  /private:
+    get:
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+  /redirect:
+    get:
+      responses:
+        '302':
+          description: Found
+        '404':
+          description: Notfound
+  /ping:
+    get:
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                ex1:
+                  value: pong
+components:
+  schemas:
+    Username:
+      type: object
+      properties:
+        username:
+          type: string
