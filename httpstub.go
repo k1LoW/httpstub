@@ -496,9 +496,9 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 		}
 	}
 	doc := m.router.openAPI3Doc
-	v3m, errs := doc.BuildV3Model()
-	if errs != nil {
-		m.router.t.Errorf("failed to build OpenAPI v3 model: %v", errors.Join(errs...))
+	v3m, err := doc.BuildV3Model()
+	if err != nil {
+		m.router.t.Errorf("failed to build OpenAPI v3 model: %v", err)
 		return
 	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
