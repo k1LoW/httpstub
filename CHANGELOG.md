@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.25.0](https://github.com/k1LoW/httpstub/compare/v0.24.1...v0.25.0) - 2025-10-15
+### New Features 🎉
+- feat: support OpenAPI Spec 3.1 by @k1LoW in https://github.com/k1LoW/httpstub/pull/121
+
 ## [v0.24.1](https://github.com/k1LoW/httpstub/compare/v0.24.0...v0.24.1) - 2025-10-14
 ### Other Changes
 - fix: retract versions by @k1LoW in https://github.com/k1LoW/httpstub/pull/120
