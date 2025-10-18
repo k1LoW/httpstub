@@ -24,6 +24,7 @@ type config struct {
 	skipValidateResponse                bool
 	skipCircularReferenceCheck          bool
 	addr                                string
+	baseURL                             string
 }
 
 type Option func(*config) error
@@ -194,6 +195,14 @@ func ClientCACert(cacert []byte) Option {
 func Addr(addr string) Option {
 	return func(c *config) error {
 		c.addr = addr
+		return nil
+	}
+}
+
+// BaseURL set base URL path prefix.
+func BaseURL(baseURL string) Option {
+	return func(c *config) error {
+		c.baseURL = baseURL
 		return nil
 	}
 }
