@@ -61,6 +61,7 @@ type Router struct {
 	skipValidateResponse                bool
 	prependOnce                         bool
 	addr                                string
+	baseURL                             string
 	mu                                  sync.RWMutex
 }
 
@@ -149,6 +150,7 @@ func NewRouter(t TB, opts ...Option) *Router {
 		skipValidateRequest:  c.skipValidateRequest,
 		skipValidateResponse: c.skipValidateResponse,
 		addr:                 c.addr,
+		baseURL:              c.baseURL,
 	}
 	if err := rt.setOpenApi3Vaildator(); err != nil {
 		t.Fatal(err)
@@ -293,7 +295,7 @@ func (rt *Router) Server() *httptest.Server {
 	if !ok {
 		panic("failed to type assert to *http.Transport")
 	}
-	client.Transport = newTransport(rt.server.URL, tp)
+	client.Transport = newTransport(rt.server.URL, rt.baseURL, tp)
 	rt.URL = rt.server.URL
 	return rt.server
 }
@@ -359,9 +361,15 @@ func (m *matcher) Method(method string) *matcher {
 func (rt *Router) Path(path string) *matcher {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
+	// Prepend baseURL to path if baseURL is set
+	if rt.baseURL != "" {
+		u, _ := url.JoinPath(rt.baseURL, path)
+		path = u
+	}
 	fn := pathMatchFunc(path)
 	m := &matcher{
 		matchFuncs: []matchFunc{fn},
+		router:     rt,
 	}
 	rt.addMatcher(m)
 	return m
@@ -371,6 +379,11 @@ func (rt *Router) Path(path string) *matcher {
 func (m *matcher) Path(path string) *matcher {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	// Prepend baseURL to path if baseURL is set
+	if m.router != nil && m.router.baseURL != "" {
+		u, _ := url.JoinPath(m.router.baseURL, path)
+		path = u
+	}
 	fn := pathMatchFunc(path)
 	m.matchFuncs = append(m.matchFuncs, fn)
 	return m
@@ -692,15 +705,17 @@ func queryMatchFunc(key, value string) matchFunc {
 }
 
 type transport struct {
-	URL *url.URL
-	tp  *http.Transport
+	URL     *url.URL
+	baseURL string
+	tp      *http.Transport
 }
 
-func newTransport(rawURL string, tp *http.Transport) http.RoundTripper {
+func newTransport(rawURL string, baseURL string, tp *http.Transport) http.RoundTripper {
 	u, _ := url.Parse(rawURL)
 	return &transport{
-		URL: u,
-		tp:  tp,
+		URL:     u,
+		baseURL: baseURL,
+		tp:      tp,
 	}
 }
 
