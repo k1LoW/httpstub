@@ -874,6 +874,93 @@ func TestURL(t *testing.T) {
 		}
 	}
 }
+func TestAddr(t *testing.T) {
+	rt := NewRouter(t, Addr("127.0.0.1:12345"))
+	rt.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
+	ts := rt.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+
+	res, err := tc.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	{
+		got := res.StatusCode
+		want := http.StatusOK
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+	{
+		got := string(body)
+		want := `{"name":"alice"}`
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+	{
+		got := rt.URL
+		want := "http://127.0.0.1:12345"
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+}
+
+func TestAddrTLS(t *testing.T) {
+	rt := NewRouter(t, Addr("127.0.0.1:12345"))
+	rt.Method(http.MethodGet).Path("/api/v1/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
+	ts := rt.TLSServer()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := ts.Client()
+
+	res, err := tc.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	{
+		got := res.StatusCode
+		want := http.StatusOK
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+	{
+		got := string(body)
+		want := `{"name":"alice"}`
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+	{
+		got := rt.URL
+		want := "https://127.0.0.1:12345"
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+}
 
 func BenchmarkNewServer(b *testing.B) {
 	for i := 0; i < b.N; i++ {

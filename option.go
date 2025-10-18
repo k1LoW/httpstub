@@ -23,6 +23,7 @@ type config struct {
 	skipValidateRequest                 bool
 	skipValidateResponse                bool
 	skipCircularReferenceCheck          bool
+	addr                                string
 }
 
 type Option func(*config) error
@@ -185,6 +186,14 @@ func ClientCertificates(cert, key []byte) Option {
 func ClientCACert(cacert []byte) Option {
 	return func(c *config) error {
 		c.clientCacert = cacert
+		return nil
+	}
+}
+
+// Addr set server address.
+func Addr(addr string) Option {
+	return func(c *config) error {
+		c.addr = addr
 		return nil
 	}
 }

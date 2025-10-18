@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -59,6 +60,7 @@ type Router struct {
 	skipValidateRequest                 bool
 	skipValidateResponse                bool
 	prependOnce                         bool
+	addr                                string
 	mu                                  sync.RWMutex
 }
 
@@ -146,6 +148,7 @@ func NewRouter(t TB, opts ...Option) *Router {
 		openAPI3Validator:    c.openAPI3Validator,
 		skipValidateRequest:  c.skipValidateRequest,
 		skipValidateResponse: c.skipValidateResponse,
+		addr:                 c.addr,
 	}
 	if err := rt.setOpenApi3Vaildator(); err != nil {
 		t.Fatal(err)
@@ -188,6 +191,18 @@ func (rt *Router) Server() *httptest.Server {
 	}
 	if rt.useTLS {
 		rt.server = httptest.NewUnstartedServer(rt)
+		if rt.addr != "" {
+			if err := rt.server.Listener.Close(); err != nil {
+				rt.t.Fatal(err)
+				return nil
+			}
+			ln, err := net.Listen("tcp", rt.addr)
+			if err != nil {
+				rt.t.Fatal(err)
+				return nil
+			}
+			rt.server.Listener = ln
+		}
 
 		// server certificates
 		if rt.cert != nil && rt.key != nil {
@@ -258,7 +273,20 @@ func (rt *Router) Server() *httptest.Server {
 			transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
 		}
 	} else {
-		rt.server = httptest.NewServer(rt)
+		rt.server = httptest.NewUnstartedServer(rt)
+		if rt.addr != "" {
+			if err := rt.server.Listener.Close(); err != nil {
+				rt.t.Fatal(err)
+				return nil
+			}
+			ln, err := net.Listen("tcp", rt.addr)
+			if err != nil {
+				rt.t.Fatal(err)
+				return nil
+			}
+			rt.server.Listener = ln
+		}
+		rt.server.Start()
 	}
 	client := rt.server.Client()
 	tp, ok := client.Transport.(*http.Transport)
