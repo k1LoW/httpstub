@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.26.0](https://github.com/k1LoW/httpstub/compare/v0.25.0...v0.26.0) - 2025-10-18
+### New Features 🎉
+- feat: add `Addr` option for custom server address by @k1LoW in https://github.com/k1LoW/httpstub/pull/123
+- feat: add `BaseURL` option for baseURL configuration by @k1LoW in https://github.com/k1LoW/httpstub/pull/125
+
 ## [v0.25.0](https://github.com/k1LoW/httpstub/compare/v0.24.1...v0.25.0) - 2025-10-15
 ### New Features 🎉
 - feat: support OpenAPI Spec 3.1 by @k1LoW in https://github.com/k1LoW/httpstub/pull/121
