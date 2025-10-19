@@ -1,0 +1,447 @@
+openapi: 3.0.3
+info:
+  title: ResponseDynamic Test Spec
+  version: 1.0.0
+servers:
+  - url: 'https://api.example.com'
+paths:
+  /string-basic:
+    get:
+      responses:
+        '200':
+          description: Basic string response
+          content:
+            application/json:
+              schema:
+                type: string
+    post:
+      responses:
+        '201':
+          description: Created string response
+          content:
+            application/json:
+              schema:
+                type: string
+    delete:
+      responses:
+        '204':
+          description: No content
+  /string-with-length:
+    get:
+      responses:
+        '200':
+          description: String with length constraints
+          content:
+            application/json:
+              schema:
+                type: string
+                minLength: 5
+                maxLength: 10
+  /string-with-enum:
+    get:
+      responses:
+        '200':
+          description: String with enum
+          content:
+            application/json:
+              schema:
+                type: string
+                enum: [active, inactive, pending]
+  /string-with-format-date:
+    get:
+      responses:
+        '200':
+          description: String with date format
+          content:
+            application/json:
+              schema:
+                type: string
+                format: date
+  /string-with-format-datetime:
+    get:
+      responses:
+        '200':
+          description: String with date-time format
+          content:
+            application/json:
+              schema:
+                type: string
+                format: date-time
+  /string-with-format-email:
+    get:
+      responses:
+        '200':
+          description: String with email format
+          content:
+            application/json:
+              schema:
+                type: string
+                format: email
+  /string-with-format-uuid:
+    get:
+      responses:
+        '200':
+          description: String with uuid format
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
+  /number-basic:
+    get:
+      responses:
+        '200':
+          description: Basic number response
+          content:
+            application/json:
+              schema:
+                type: number
+    post:
+      responses:
+        '201':
+          description: Created number response
+          content:
+            application/json:
+              schema:
+                type: number
+    delete:
+      responses:
+        '204':
+          description: No content
+  /number-with-range:
+    get:
+      responses:
+        '200':
+          description: Number with min/max
+          content:
+            application/json:
+              schema:
+                type: number
+                minimum: 10.5
+                maximum: 99.9
+  /number-with-enum:
+    get:
+      responses:
+        '200':
+          description: Number with enum
+          content:
+            application/json:
+              schema:
+                type: number
+                enum: [1.5, 2.5, 3.5]
+  /integer-basic:
+    get:
+      responses:
+        '200':
+          description: Basic integer response
+          content:
+            application/json:
+              schema:
+                type: integer
+    post:
+      responses:
+        '201':
+          description: Created integer response
+          content:
+            application/json:
+              schema:
+                type: integer
+    delete:
+      responses:
+        '204':
+          description: No content
+  /integer-with-range:
+    get:
+      responses:
+        '200':
+          description: Integer with min/max
+          content:
+            application/json:
+              schema:
+                type: integer
+                minimum: 1
+                maximum: 100
+  /integer-with-enum:
+    get:
+      responses:
+        '200':
+          description: Integer with enum
+          content:
+            application/json:
+              schema:
+                type: integer
+                enum: [1, 2, 3, 5, 8]
+  /boolean-basic:
+    get:
+      responses:
+        '200':
+          description: Basic boolean response
+          content:
+            application/json:
+              schema:
+                type: boolean
+    post:
+      responses:
+        '201':
+          description: Created boolean response
+          content:
+            application/json:
+              schema:
+                type: boolean
+    delete:
+      responses:
+        '204':
+          description: No content
+  /array-of-strings:
+    get:
+      responses:
+        '200':
+          description: Array of strings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                minItems: 1
+                maxItems: 5
+  /array-of-objects:
+    get:
+      responses:
+        '200':
+          description: Array of objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                  required:
+                    - id
+  /object-simple:
+    get:
+      responses:
+        '200':
+          description: Simple object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+                  age:
+                    type: integer
+                  active:
+                    type: boolean
+                required:
+                  - username
+  /object-nested:
+    get:
+      responses:
+        '200':
+          description: Nested object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      address:
+                        type: object
+                        properties:
+                          street:
+                            type: string
+                          city:
+                            type: string
+                        required:
+                          - city
+                    required:
+                      - name
+                  metadata:
+                    type: object
+                    properties:
+                      created:
+                        type: string
+                        format: date-time
+                required:
+                  - user
+  /object-with-nullable:
+    get:
+      responses:
+        '200':
+          description: Object with nullable property
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  email:
+                    type: string
+                    nullable: true
+                  phone:
+                    type: string
+                    nullable: true
+                required:
+                  - name
+  /object-with-allof:
+    get:
+      responses:
+        '200':
+          description: Object with allOf
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                    required:
+                      - id
+  /object-with-anyof:
+    get:
+      responses:
+        '200':
+          description: Object with anyOf
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - type: object
+                    properties:
+                      type:
+                        type: string
+                      value:
+                        type: string
+  /object-with-oneof:
+    get:
+      responses:
+        '200':
+          description: Object with oneOf
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      kind:
+                        type: string
+                      data:
+                        type: string
+  /text-plain:
+    get:
+      responses:
+        '200':
+          description: Text plain response
+          content:
+            text/plain:
+              schema:
+                type: string
+  /no-content:
+    get:
+      responses:
+        '204':
+          description: No content
+  /multiple-status:
+    get:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /complex-schema:
+    get:
+      responses:
+        '200':
+          description: Complex schema with multiple types
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    minimum: 1
+                  name:
+                    type: string
+                    minLength: 3
+                    maxLength: 50
+                  email:
+                    type: string
+                    format: email
+                  status:
+                    type: string
+                    enum: [active, inactive, suspended]
+                  score:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+                  verified:
+                    type: boolean
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                    minItems: 0
+                    maxItems: 10
+                  metadata:
+                    type: object
+                    properties:
+                      created:
+                        type: string
+                        format: date-time
+                      updated:
+                        type: string
+                        format: date-time
+                  profile:
+                    type: object
+                    properties:
+                      bio:
+                        type: string
+                        nullable: true
+                      avatar:
+                        type: string
+                        format: uuid
+                        nullable: true
+                required:
+                  - id
+                  - name
+                  - email
+                  - status
