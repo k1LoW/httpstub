@@ -1050,7 +1050,7 @@ func TestBasePathWithResponseExample(t *testing.T) {
 	mockTB := mock_httpstub.NewMockTB(ctrl)
 	mockTB.EXPECT().Helper().AnyTimes()
 
-	rt := NewRouter(mockTB, BasePath("/api/v1"), OpenApi3("testdata/openapi3.yml"))
+	rt := NewRouter(mockTB, BasePath("/api/v1"), OpenApi3("testdata/openapi3-no-base-path.yml"))
 	rt.ResponseExample(Status("*"))
 	ts := rt.Server()
 	t.Cleanup(func() {
