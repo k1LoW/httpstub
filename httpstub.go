@@ -136,6 +136,7 @@ func NewRouter(t TB, opts ...Option) *Router {
 			t.Fatal(err)
 		}
 	}
+
 	rt := &Router{
 		t:                    t,
 		useTLS:               c.useTLS,
@@ -192,7 +193,13 @@ func (rt *Router) Server() *httptest.Server {
 		return rt.server
 	}
 	if rt.useTLS {
-		rt.server = httptest.NewUnstartedServer(rt)
+		var h http.Handler = rt
+		if rt.basePath != "" {
+			mux := http.NewServeMux()
+			mux.Handle(rt.basePath+"/", http.StripPrefix(rt.basePath, rt))
+			h = mux
+		}
+		rt.server = httptest.NewUnstartedServer(h)
 		if rt.addr != "" {
 			if err := rt.server.Listener.Close(); err != nil {
 				rt.t.Fatal(err)
@@ -275,7 +282,13 @@ func (rt *Router) Server() *httptest.Server {
 			transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
 		}
 	} else {
-		rt.server = httptest.NewUnstartedServer(rt)
+		var h http.Handler = rt
+		if rt.basePath != "" {
+			mux := http.NewServeMux()
+			mux.Handle(rt.basePath+"/", http.StripPrefix(rt.basePath, rt))
+			h = mux
+		}
+		rt.server = httptest.NewUnstartedServer(h)
 		if rt.addr != "" {
 			if err := rt.server.Listener.Close(); err != nil {
 				rt.t.Fatal(err)
@@ -361,11 +374,6 @@ func (m *matcher) Method(method string) *matcher {
 func (rt *Router) Path(path string) *matcher {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
-	// Prepend basePath to path if basePath is set
-	if rt.basePath != "" {
-		u, _ := url.JoinPath(rt.basePath, path)
-		path = u
-	}
 	fn := pathMatchFunc(path)
 	m := &matcher{
 		matchFuncs: []matchFunc{fn},
@@ -379,11 +387,6 @@ func (rt *Router) Path(path string) *matcher {
 func (m *matcher) Path(path string) *matcher {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	// Prepend basePath to path if basePath is set
-	if m.router != nil && m.router.basePath != "" {
-		u, _ := url.JoinPath(m.router.basePath, path)
-		path = u
-	}
 	fn := pathMatchFunc(path)
 	m.matchFuncs = append(m.matchFuncs, fn)
 	return m

@@ -202,6 +202,12 @@ func Addr(addr string) Option {
 // BasePath set base URL path prefix.
 func BasePath(basePath string) Option {
 	return func(c *config) error {
+		if !strings.HasPrefix(basePath, "/") {
+			return errors.New("basePath must start with '/'")
+		}
+		if strings.HasSuffix(basePath, "/") {
+			return errors.New("basePath must not end with '/'")
+		}
 		c.basePath = basePath
 		return nil
 	}
