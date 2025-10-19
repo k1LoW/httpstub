@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	mrand "math/rand"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -560,40 +561,16 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 			m.router.t.Errorf("failed to find route (%v %v) operation of method: %s", r.Method, pathValue, r.Method)
 			return
 		}
-		s, res := matchOne(op.Responses, c.status)
-		if res == nil {
-			m.router.t.Errorf("failed to find route (%v %v) response of status %s", r.Method, pathValue, c.status)
-			return
-		}
-		status, err := strconv.Atoi(s)
+		status, e, contentType, err := matchOne(r, op.Responses, c.status)
 		if err != nil {
-			m.router.t.Error(err)
+			m.router.t.Errorf("failed to find route (%v %v) response: %w", r.Method, pathValue, err)
 			return
-		}
-
-		mime := r.Header.Get("Content-Type")
-		var e *base.Example
-		if res.Content != nil {
-			mt, ok := res.Content.Get(mime)
-			if !ok {
-				p := res.Content.First()
-				mime, mt = p.Key(), p.Value()
-			}
-			if mt == nil {
-				m.router.t.Errorf("failed to find route (%v %v %v) mimeType", status, r.Method, pathValue)
-				return
-			}
-			if mt.Examples.Len() == 0 {
-				m.router.t.Errorf("failed to find route (%v %v %v) example", status, r.Method, pathValue)
-				return
-			}
-			e = one(mt.Examples)
 		}
 		var b []byte
 		switch {
 		case e == nil:
 			b = nil
-		case strings.Contains(mime, "text"):
+		case strings.Contains(contentType, "text"):
 			b = []byte(e.Value.Value)
 		default:
 			b, err = openapijson.YAMLNodeToJSON(e.Value, "  ")
@@ -603,7 +580,7 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 			}
 		}
 
-		w.Header().Set("Content-Type", mime)
+		w.Header().Set("Content-Type", contentType)
 		w.WriteHeader(status)
 		_, _ = w.Write(b)
 	}
@@ -765,14 +742,54 @@ func one[K comparable, V *base.Example](m *orderedmap.Map[K, V]) V {
 }
 
 // matchOne returns match one randomly from map.
-func matchOne(r *v3.Responses, pattern string) (string, *v3.Response) {
+func matchOne(req *http.Request, r *v3.Responses, pattern string) (status int, example *base.Example, contentType string, err error) {
 	m := r.Codes
+	var matched []orderedmap.Pair[string, *v3.Response]
 	for p := range orderedmap.Iterate(context.Background(), m) {
 		if wildcard.Match(pattern, p.Key()) {
-			return p.Key(), p.Value()
+			matched = append(matched, p)
 		}
 	}
-	return "", nil
+	if len(matched) == 0 {
+		return 0, nil, "", fmt.Errorf("failed to find response matching pattern: %s", pattern)
+	}
+	idx := mrand.Intn(len(matched)) //nolint:gosec
+	status, err = strconv.Atoi(matched[idx].Key())
+	if err != nil {
+		return 0, nil, "", fmt.Errorf("invalid status code: %w", err)
+	}
+	res := matched[idx].Value()
+	accepts := strings.Split(req.Header.Get("Accept"), ",")
+	var contentTypes []string
+	for _, a := range accepts {
+		contentTypes = append(contentTypes, strings.TrimSpace(a))
+	}
+	var e *base.Example
+	if res.Content != nil {
+		var (
+			mt *v3.MediaType
+			ok bool
+		)
+		for _, ct := range contentTypes {
+			mt, ok = res.Content.Get(ct)
+			if ok {
+				break
+			}
+			contentType = ct
+		}
+		if mt == nil {
+			p := res.Content.First()
+			contentType, mt = p.Key(), p.Value()
+		}
+		if mt == nil {
+			return 0, nil, "", fmt.Errorf("failed to find example")
+		}
+		if mt.Examples.Len() == 0 {
+			return 0, nil, "", fmt.Errorf("failed to find example")
+		}
+		e = one(mt.Examples)
+	}
+	return status, e, contentType, nil
 }
 
 func withCloneReq(fn matchFunc) matchFunc {

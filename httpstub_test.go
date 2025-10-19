@@ -717,7 +717,7 @@ func TestMatcherResponseExample(t *testing.T) {
 		wantContentType string
 		wantErr         bool
 	}{
-		{"valid req/res", newRequest(t, http.MethodGet, "/api/v1/users", ""), "*", "application/json", false},
+		{"valid req/res", newRequest(t, http.MethodGet, "/api/v1/users", ""), "2*", "application/json", false},
 		{"valid req/res", newRequest(t, http.MethodGet, "/api/v1/ping", ""), "*", "text/plain", false},
 		{"valid req/res with status 200", newRequest(t, http.MethodGet, "/api/v1/users", ""), "200", "application/json", false},
 		{"valid req/res with status 2*", newRequest(t, http.MethodGet, "/api/v1/users", ""), "2*", "application/json", false},
@@ -1009,7 +1009,7 @@ func TestBasePathTLS(t *testing.T) {
 	tc := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, //nolint:gosec
 			},
 		},
 	}
@@ -1051,7 +1051,7 @@ func TestBasePathWithResponseExample(t *testing.T) {
 	mockTB.EXPECT().Helper().AnyTimes()
 
 	rt := NewRouter(mockTB, BasePath("/api/v1"), OpenApi3("testdata/openapi3-no-base-path.yml"))
-	rt.ResponseExample(Status("*"))
+	rt.ResponseExample(Status("2*"))
 	ts := rt.Server()
 	t.Cleanup(func() {
 		ts.Close()
