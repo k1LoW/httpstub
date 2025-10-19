@@ -24,7 +24,7 @@ type config struct {
 	skipValidateResponse                bool
 	skipCircularReferenceCheck          bool
 	addr                                string
-	baseURL                             string
+	basePath                            string
 }
 
 type Option func(*config) error
@@ -199,10 +199,10 @@ func Addr(addr string) Option {
 	}
 }
 
-// BaseURL set base URL path prefix.
-func BaseURL(baseURL string) Option {
+// BasePath set base URL path prefix.
+func BasePath(basePath string) Option {
 	return func(c *config) error {
-		c.baseURL = baseURL
+		c.basePath = basePath
 		return nil
 	}
 }

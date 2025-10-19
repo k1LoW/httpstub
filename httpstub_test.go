@@ -961,8 +961,8 @@ func TestAddrTLS(t *testing.T) {
 		}
 	}
 }
-func TestBaseURL(t *testing.T) {
-	rt := NewRouter(t, BaseURL("/api/v1"))
+func TestBasePath(t *testing.T) {
+	rt := NewRouter(t, BasePath("/api/v1"))
 	rt.Method(http.MethodGet).Path("/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
 	ts := rt.Server()
 	t.Cleanup(func() {
@@ -998,8 +998,8 @@ func TestBaseURL(t *testing.T) {
 	}
 }
 
-func TestBaseURLTLS(t *testing.T) {
-	rt := NewRouter(t, BaseURL("/api/v1"))
+func TestBasePathTLS(t *testing.T) {
+	rt := NewRouter(t, BasePath("/api/v1"))
 	rt.Method(http.MethodGet).Path("/users/1").Header("Content-Type", "application/json").ResponseString(http.StatusOK, `{"name":"alice"}`)
 	ts := rt.TLSServer()
 	t.Cleanup(func() {
