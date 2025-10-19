@@ -61,7 +61,7 @@ type Router struct {
 	skipValidateResponse                bool
 	prependOnce                         bool
 	addr                                string
-	baseURL                             string
+	basePath                            string
 	mu                                  sync.RWMutex
 }
 
@@ -150,7 +150,7 @@ func NewRouter(t TB, opts ...Option) *Router {
 		skipValidateRequest:  c.skipValidateRequest,
 		skipValidateResponse: c.skipValidateResponse,
 		addr:                 c.addr,
-		baseURL:              c.baseURL,
+		basePath:             c.basePath,
 	}
 	if err := rt.setOpenApi3Vaildator(); err != nil {
 		t.Fatal(err)
@@ -295,7 +295,7 @@ func (rt *Router) Server() *httptest.Server {
 	if !ok {
 		panic("failed to type assert to *http.Transport")
 	}
-	client.Transport = newTransport(rt.server.URL, rt.baseURL, tp)
+	client.Transport = newTransport(rt.server.URL, rt.basePath, tp)
 	rt.URL = rt.server.URL
 	return rt.server
 }
@@ -361,9 +361,9 @@ func (m *matcher) Method(method string) *matcher {
 func (rt *Router) Path(path string) *matcher {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
-	// Prepend baseURL to path if baseURL is set
-	if rt.baseURL != "" {
-		u, _ := url.JoinPath(rt.baseURL, path)
+	// Prepend basePath to path if basePath is set
+	if rt.basePath != "" {
+		u, _ := url.JoinPath(rt.basePath, path)
 		path = u
 	}
 	fn := pathMatchFunc(path)
@@ -379,9 +379,9 @@ func (rt *Router) Path(path string) *matcher {
 func (m *matcher) Path(path string) *matcher {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	// Prepend baseURL to path if baseURL is set
-	if m.router != nil && m.router.baseURL != "" {
-		u, _ := url.JoinPath(m.router.baseURL, path)
+	// Prepend basePath to path if basePath is set
+	if m.router != nil && m.router.basePath != "" {
+		u, _ := url.JoinPath(m.router.basePath, path)
 		path = u
 	}
 	fn := pathMatchFunc(path)
@@ -705,17 +705,17 @@ func queryMatchFunc(key, value string) matchFunc {
 }
 
 type transport struct {
-	URL     *url.URL
-	baseURL string
-	tp      *http.Transport
+	URL      *url.URL
+	basePath string
+	tp       *http.Transport
 }
 
-func newTransport(rawURL string, baseURL string, tp *http.Transport) http.RoundTripper {
+func newTransport(rawURL string, basePath string, tp *http.Transport) http.RoundTripper {
 	u, _ := url.Parse(rawURL)
 	return &transport{
-		URL:     u,
-		baseURL: baseURL,
-		tp:      tp,
+		URL:      u,
+		basePath: basePath,
+		tp:       tp,
 	}
 }
 
