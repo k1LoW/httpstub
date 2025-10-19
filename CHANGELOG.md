@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.26.1](https://github.com/k1LoW/httpstub/compare/v0.26.0...v0.26.1) - 2025-10-19
+### Breaking Changes 🛠
+- fix: Rename `BaseURL` to `BasePath` by @k1LoW in https://github.com/k1LoW/httpstub/pull/127
+### Fix bug 🐛
+- fix: fix basePath handling by @k1LoW in https://github.com/k1LoW/httpstub/pull/130
+### Other Changes
+- test: add TestBasePathWithResponseExample to verify OpenAPI example responses by @k1LoW in https://github.com/k1LoW/httpstub/pull/129
+
 ## [v0.26.0](https://github.com/k1LoW/httpstub/compare/v0.25.0...v0.26.0) - 2025-10-18
 ### New Features 🎉
 - feat: add `Addr` option for custom server address by @k1LoW in https://github.com/k1LoW/httpstub/pull/123
