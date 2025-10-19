@@ -753,7 +753,7 @@ func matchOne(req *http.Request, r *v3.Responses, pattern string) (status int, e
 	if len(matched) == 0 {
 		return 0, nil, "", fmt.Errorf("failed to find response matching pattern: %s", pattern)
 	}
-	idx := mrand.Intn(len(matched))
+	idx := mrand.Intn(len(matched)) //nolint:gosec
 	status, err = strconv.Atoi(matched[idx].Key())
 	if err != nil {
 		return 0, nil, "", fmt.Errorf("invalid status code: %w", err)

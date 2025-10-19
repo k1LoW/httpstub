@@ -1009,7 +1009,7 @@ func TestBasePathTLS(t *testing.T) {
 	tc := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, //nolint:gosec
 			},
 		},
 	}
