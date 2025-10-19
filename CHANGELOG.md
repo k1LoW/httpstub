@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.27.1](https://github.com/k1LoW/httpstub/compare/v0.27.0...v0.27.1) - 2025-10-19
+### Fix bug 🐛
+- fix: handle missing examples gracefully in content matching by @k1LoW in https://github.com/k1LoW/httpstub/pull/133
+
 ## [v0.27.0](https://github.com/k1LoW/httpstub/compare/v0.26.1...v0.27.0) - 2025-10-19
 ### Breaking Changes 🛠
 - fix: fix response matching with content negotiation in ResponseExample by @k1LoW in https://github.com/k1LoW/httpstub/pull/131
