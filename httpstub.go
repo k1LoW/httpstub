@@ -772,23 +772,32 @@ func matchOne(req *http.Request, r *v3.Responses, pattern string) (status int, e
 		)
 		for _, ct := range contentTypes {
 			mt, ok = res.Content.Get(ct)
-			if ok {
-				break
+			if !ok {
+				continue
 			}
 			contentType = ct
+			if mt.Examples.Len() == 0 {
+				continue
+			}
+			e = one(mt.Examples)
+			break
 		}
 		if mt == nil {
-			p := res.Content.First()
-			contentType, mt = p.Key(), p.Value()
+			for p := range orderedmap.Iterate(context.Background(), res.Content) {
+				mt = p.Value()
+				contentType = p.Key()
+				if mt.Examples.Len() == 0 {
+					continue
+				}
+				e = one(mt.Examples)
+				break
+			}
 		}
 		if mt == nil {
 			return 0, nil, "", fmt.Errorf("failed to find example")
 		}
-		if mt.Examples.Len() == 0 {
-			return 0, nil, "", fmt.Errorf("failed to find example")
-		}
-		e = one(mt.Examples)
 	}
+
 	return status, e, contentType, nil
 }
 
