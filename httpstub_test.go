@@ -1,6 +1,7 @@
 package httpstub
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -968,9 +969,9 @@ func TestBasePath(t *testing.T) {
 	t.Cleanup(func() {
 		ts.Close()
 	})
-	tc := ts.Client()
+	tc := &http.Client{}
 
-	res, err := tc.Get("https://example.com/api/v1/users/1")
+	res, err := tc.Get(ts.URL + "/api/v1/users/1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1005,9 +1006,15 @@ func TestBasePathTLS(t *testing.T) {
 	t.Cleanup(func() {
 		ts.Close()
 	})
-	tc := ts.Client()
+	tc := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
 
-	res, err := tc.Get("https://example.com/api/v1/users/1")
+	res, err := tc.Get(ts.URL + "/api/v1/users/1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1031,6 +1038,60 @@ func TestBasePathTLS(t *testing.T) {
 		want := `{"name":"alice"}`
 		if got != want {
 			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+}
+
+func TestBasePathWithResponseExample(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(func() {
+		ctrl.Finish()
+	})
+	mockTB := mock_httpstub.NewMockTB(ctrl)
+	mockTB.EXPECT().Helper().AnyTimes()
+
+	rt := NewRouter(mockTB, BasePath("/api/v1"), OpenApi3("testdata/openapi3.yml"))
+	rt.ResponseExample(Status("*"))
+	ts := rt.Server()
+	t.Cleanup(func() {
+		ts.Close()
+	})
+	tc := &http.Client{}
+
+	res, err := tc.Get(ts.URL + "/api/v1/users")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		res.Body.Close()
+	})
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	{
+		got := res.StatusCode
+		want := http.StatusOK
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+	{
+		got := res.Header.Get("Content-Type")
+		want := "application/json"
+		if got != want {
+			t.Errorf("got %v\nwant %v", got, want)
+		}
+	}
+	{
+		got := string(body)
+		// Verify that the response contains the OpenAPI example values
+		if !strings.Contains(got, `"username": "alice"`) {
+			t.Errorf("response body should contain username 'alice', got %v", got)
+		}
+		if !strings.Contains(got, `"username": "bob"`) {
+			t.Errorf("response body should contain username 'bob', got %v", got)
 		}
 	}
 }
