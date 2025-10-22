@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.27.2](https://github.com/k1LoW/httpstub/compare/v0.27.1...v0.27.2) - 2025-10-22
+### New Features 🎉
+- feat: support `ResponseDynamic` by @k1LoW in https://github.com/k1LoW/httpstub/pull/126
+### Other Changes
+- chore: setup tagpr labels by @k1LoW in https://github.com/k1LoW/httpstub/pull/135
+- Revert "chore: setup tagpr labels" by @k1LoW in https://github.com/k1LoW/httpstub/pull/137
+- Revert "Revert "chore: setup tagpr labels"" by @k1LoW in https://github.com/k1LoW/httpstub/pull/138
+
 ## [v0.27.1](https://github.com/k1LoW/httpstub/compare/v0.27.0...v0.27.1) - 2025-10-19
 ### Fix bug 🐛
 - fix: handle missing examples gracefully in content matching by @k1LoW in https://github.com/k1LoW/httpstub/pull/133
