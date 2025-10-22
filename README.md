@@ -130,46 +130,6 @@ t.Cleanup(func() {
 ts.Method(http.MethodPost).Path("/api/v1/users").ResponseExample(httpstub.Status("2*"))
 ```
 
-## Response dynamically generated from OpenAPI Schema
-
-httpstub can generate random response data dynamically from the OpenAPI Schema definition, unlike `ResponseExample()` which uses predefined `examples:`.
-
-### Basic usage
-
-``` go
-ts := httpstub.NewServer(t, httpstub.OpenApi3("path/to/schema.yml"))
-t.Cleanup(func() {
-	ts.Close()
-})
-ts.Method(http.MethodGet).Path("/api/v1/users").ResponseDynamic()
-```
-
-### Use specific status code in the response
-
-You can specify status codes using the `Status()` option.
-
-``` go
-ts := httpstub.NewServer(t, httpstub.OpenApi3("path/to/schema.yml"))
-t.Cleanup(func() {
-	ts.Close()
-})
-ts.Method(http.MethodPost).Path("/api/v1/users").ResponseDynamic(httpstub.Status("201"))
-```
-
-### Supported features
-
-ResponseDynamic supports the following OpenAPI Schema features:
-
-- **Data types**: `string`, `number`, `integer`, `boolean`, `array`, `object`
-- **Constraints**: `enum`, `minimum`/`maximum`, `minLength`/`maxLength`, `minItems`/`maxItems`, `required`, `nullable`
-- **Formats**: `date`, `date-time`, `email`, `uuid`
-- **Composition**: `allOf`, `anyOf`, `oneOf` (uses first element only)
-
-### When to use ResponseDynamic vs ResponseExample
-
-- Use **`ResponseExample()`** when you want to return specific, predefined example data from your OpenAPI document
-- Use **`ResponseDynamic()`** when you need randomly generated data that conforms to your schema, useful for testing with varied data or when examples are not defined
-
 ### HTTP Client that always makes HTTP request to stub server
 
 It is possible to create a client that will always make an HTTP request to the stub server.
