@@ -546,8 +546,9 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 		m.router.t.Errorf("failed to build OpenAPI v3 model: %v", err)
 		return
 	}
+	regexCache := &sync.Map{}
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		pathItem, errs, pathValue := paths.FindPath(r, &v3m.Model)
+		pathItem, errs, pathValue := paths.FindPath(r, &v3m.Model, regexCache)
 		if pathItem == nil || errs != nil {
 			var err error
 			for _, e := range errs {
