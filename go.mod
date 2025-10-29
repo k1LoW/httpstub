@@ -6,7 +6,7 @@ require (
 	github.com/IGLOU-EU/go-wildcard/v2 v2.1.0
 	github.com/golang/mock v1.6.0
 	github.com/pb33f/libopenapi v0.28.1
-	github.com/pb33f/libopenapi-validator v0.8.1
+	github.com/pb33f/libopenapi-validator v0.9.0
 )
 
 require (
