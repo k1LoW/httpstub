@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	validator "github.com/pb33f/libopenapi-validator"
+	vconfig "github.com/pb33f/libopenapi-validator/config"
 )
 
 var _ http.ResponseWriter = (*recorder)(nil)
@@ -65,7 +66,7 @@ func (rt *Router) setOpenApi3Vaildator() error {
 					{
 						// renew validator (workaround)
 						// ref: https://github.com/k1LoW/runn/issues/882
-						vv, errrs := validator.NewValidator(rt.openAPI3Doc)
+						vv, errrs := validator.NewValidator(rt.openAPI3Doc, vconfig.WithSchemaCache(nil))
 						if len(errrs) > 0 {
 							rt.t.Errorf("failed to renew validator: %v", errors.Join(errrs...))
 							return
@@ -89,7 +90,7 @@ func (rt *Router) setOpenApi3Vaildator() error {
 					{
 						// renew validator (workaround)
 						// ref: https://github.com/k1LoW/runn/issues/882
-						vv, errrs := validator.NewValidator(rt.openAPI3Doc)
+						vv, errrs := validator.NewValidator(rt.openAPI3Doc, vconfig.WithSchemaCache(nil))
 						if len(errrs) > 0 {
 							rt.t.Errorf("failed to renew validator: %v", errors.Join(errrs...))
 							return

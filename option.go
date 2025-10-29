@@ -11,6 +11,7 @@ import (
 
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
+	vconfig "github.com/pb33f/libopenapi-validator/config"
 	"github.com/pb33f/libopenapi/datamodel"
 )
 
@@ -69,7 +70,7 @@ func OpenApi3(l string) Option {
 				return err
 			}
 		}
-		v, errs := validator.NewValidator(doc)
+		v, errs := validator.NewValidator(doc, vconfig.WithSchemaCache(nil))
 		if len(errs) > 0 {
 			return errors.Join(errs...)
 		}
@@ -98,7 +99,7 @@ func OpenApi3FromData(b []byte) Option {
 		if err != nil {
 			return err
 		}
-		v, errs := validator.NewValidator(doc)
+		v, errs := validator.NewValidator(doc, vconfig.WithSchemaCache(nil))
 		if len(errs) > 0 {
 			return errors.Join(errs...)
 		}
