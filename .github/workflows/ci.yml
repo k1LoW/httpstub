@@ -33,6 +33,8 @@ jobs:
 
       - name: Check oldstable
         uses: k1LoW/oldstable@v2
+        with:
+          lax: true
 
       - name: Run tests
         run: make ci
