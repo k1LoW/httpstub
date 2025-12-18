@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.27.3](https://github.com/k1LoW/httpstub/compare/v0.27.2...v0.27.3) - 2025-12-15
+### Other Changes
+- chore(deps): bump actions/checkout from 5 to 6 in the dependencies group by @dependabot[bot] in https://github.com/k1LoW/httpstub/pull/145
+- chore(deps): bump the dependencies group with 2 updates by @dependabot[bot] in https://github.com/k1LoW/httpstub/pull/144
+- chore(deps): bump github.com/pb33f/libopenapi-validator from 0.9.2 to 0.9.3 in the dependencies group by @dependabot[bot] in https://github.com/k1LoW/httpstub/pull/147
+
 ## [v0.27.2](https://github.com/k1LoW/httpstub/compare/v0.27.1...v0.27.2) - 2025-10-29
 ### New Features 🎉
 - feat: support `ResponseDynamic` by @k1LoW in https://github.com/k1LoW/httpstub/pull/126
