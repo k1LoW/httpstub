@@ -527,8 +527,7 @@ func (m *matcher) ResponseStringf(status int, format string, a ...any) {
 
 type responseExampleConfig struct {
 	status         string
-	generateRandom bool  // Control the generation of random data.
-	mockSeed       int64 // Seed for a random number generator.
+	generateRandom bool // Control the generation of random data.
 }
 
 func newResponseExampleConfig() *responseExampleConfig {
@@ -556,12 +555,8 @@ func GenerateRandom(enabled bool) responseExampleOption {
 
 // MockSeed sets a seed for deterministic mock data generation.
 // This works only when GenerateRandom is enabled.
-func MockSeed(seed int64) responseExampleOption {
-	return func(c *responseExampleConfig) error {
-		c.mockSeed = seed
-		return nil
-	}
-}
+// NOTE: MockSeed was intentionally removed from response-level options.
+// Seeding should be applied at the Router level via WithMockSeed.
 
 // ResponseExample set handler which return response using examples of OpenAPI v3 Document.
 // If GenerateRandom is enabled and no explicit example is found, it will generate random data based on the schema.
@@ -576,14 +571,6 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 			m.router.t.Error(err)
 			return
 		}
-	}
-
-	// Apply to MockGenerator if a random seed is set.
-	if c.mockSeed != 0 {
-		m.router.mockGenerator.SetSeed(c.mockSeed)
-	} else {
-		// If no seed is specified, use a timestamp by default.
-		m.router.mockGenerator.SetSeed(time.Now().UnixNano())
 	}
 
 	doc := m.router.openAPI3Doc

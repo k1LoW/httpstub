@@ -1098,8 +1098,8 @@ func TestBasePathWithResponseExample(t *testing.T) {
 
 func TestResponseRandom(t *testing.T) {
 	// Use an OpenAPI path that has a schema but no examples: /users/{id}
-	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
-	rt1.ResponseRandom(Status("200"), MockSeed(1))
+	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), WithMockSeed(1))
+	rt1.ResponseRandom(Status("200"))
 	ts1 := rt1.Server()
 	t.Cleanup(func() { ts1.Close() })
 	tc1 := ts1.Client()
@@ -1114,8 +1114,8 @@ func TestResponseRandom(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
-	rt2.ResponseRandom(Status("200"), MockSeed(2))
+	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), WithMockSeed(2))
+	rt2.ResponseRandom(Status("200"))
 	ts2 := rt2.Server()
 	t.Cleanup(func() { ts2.Close() })
 	tc2 := ts2.Client()
