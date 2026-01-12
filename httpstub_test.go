@@ -1096,6 +1096,56 @@ func TestBasePathWithResponseExample(t *testing.T) {
 	}
 }
 
+func TestResponseRandom(t *testing.T) {
+	// Use an OpenAPI path that has a schema but no examples: /users/{id}
+	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
+	rt1.ResponseRandom(Status("200"), MockSeed(1))
+	ts1 := rt1.Server()
+	t.Cleanup(func() { ts1.Close() })
+	tc1 := ts1.Client()
+
+	res1, err := tc1.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { res1.Body.Close() })
+	b1, err := io.ReadAll(res1.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
+	rt2.ResponseRandom(Status("200"), MockSeed(2))
+	ts2 := rt2.Server()
+	t.Cleanup(func() { ts2.Close() })
+	tc2 := ts2.Client()
+
+	res2, err := tc2.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { res2.Body.Close() })
+	b2, err := io.ReadAll(res2.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got := res1.Header.Get("Content-Type"); got != "application/json" {
+		t.Errorf("got %v\nwant %v", got, "application/json")
+	}
+	if got := res2.Header.Get("Content-Type"); got != "application/json" {
+		t.Errorf("got %v\nwant %v", got, "application/json")
+	}
+
+	if len(b1) == 0 || len(b2) == 0 {
+		t.Fatalf("expected non-empty bodies, got len(b1)=%d len(b2)=%d", len(b1), len(b2))
+	}
+
+	if string(b1) == string(b2) {
+		t.Errorf("expected different random responses for different seeds, got same:\n%s", string(b1))
+	}
+}
+
 func BenchmarkNewServer(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		ts := NewServer(b)
