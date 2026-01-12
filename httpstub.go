@@ -32,6 +32,7 @@ import (
 	openapijson "github.com/pb33f/libopenapi/json"
 	"github.com/pb33f/libopenapi/orderedmap"
 	"github.com/pb33f/libopenapi/renderer"
+	"go.yaml.in/yaml/v4"
 )
 
 var (
@@ -161,8 +162,8 @@ func NewRouter(t TB, opts ...Option) *Router {
 		t.Fatal(err)
 	}
 
-	// Initialize MockGenerator
-	mg := renderer.NewMockGenerator()
+	// Initialize MockGenerator (use JSON mock type)
+	mg := renderer.NewMockGenerator(renderer.JSON)
 	if c.mockSeed != 0 {
 		mg.SetSeed(c.mockSeed)
 	} else {
@@ -609,7 +610,6 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 
 		status, exampleNode, contentType, err := m.findResponseContent(r, op.Responses, c.status, c.generateRandom)
 		if err != nil {
-			m.router.t.Errorf("failed to find route (%v %v) response: %w", r.Method, pathValue, err)
 			return
 		}
 		var b []byte
@@ -660,57 +660,64 @@ func (m *matcher) findResponseContent(req *http.Request, responses *v3.Responses
 	// These are stored in the `e` variable.
 	// If `c.generateRandom` is true, `MockGenerator` is used if `matchOne` cannot find an example.
 	var mt *v3.MediaType
-	var example *base.Example
 
 	// Find Content-Type and MediaType based on Accept header.
-	for _, ct := range contentTypes {
-		if mt, ok := res.Content.Get(ct); ok {
-			contentType = ct
-			if mt.Examples.Len() > 0 {
-				example = one(mt.Examples)
-			} else if mt.Example != nil {
-				example = mt.Example
+	if res.Content != nil {
+		for _, ct := range contentTypes {
+			if mt, ok := res.Content.Get(ct); ok {
+				contentType = ct
+				if mt.Examples != nil && mt.Examples.Len() > 0 {
+					ex := one(mt.Examples)
+					if ex != nil {
+						exampleNode = ex.Value
+					}
+				} else if mt.Example != nil {
+					exampleNode = mt.Example
+				}
+				break
 			}
-			break
 		}
 	}
 
+	// If there is no match in the Accept header, use the first Content-Type and Media Type.
 	// If there is no match in the Accept header, use the first Content-Type and Media Type.
 	if mt == nil && res.Content != nil {
 		for p := range orderedmap.Iterate(context.Background(), res.Content) {
 			mt = p.Value()
 			contentType = p.Key()
-			if mt.Examples.Len() > 0 {
-				example = one(mt.Examples)
+			if mt.Examples != nil && mt.Examples.Len() > 0 {
+				ex := one(mt.Examples)
+				if ex != nil {
+					exampleNode = ex.Value
+				}
 			} else if mt.Example != nil {
-				example = mt.Example
+				exampleNode = mt.Example
 			}
 			break
 		}
 	}
 
-	if example != nil {
-		return status, example.Value, contentType, nil
+	if exampleNode != nil {
+		return status, exampleNode, contentType, nil
 	}
 
 	// If examples are not found and random data generation is enabled
 	if generateRandom && mt != nil && mt.Schema != nil {
-		mock, genErr := m.router.mockGenerator.GenerateMock(mt.Schema.Schema())
+		mockBytes, genErr := m.router.mockGenerator.GenerateMock(mt.Schema.Schema(), "")
 		if genErr != nil {
 			return 0, nil, "", fmt.Errorf("failed to generate mock data: %w", genErr)
 		}
-		// Convert the generated mock data to yaml.Node
+		// Convert the generated mock bytes to yaml.Node
 		var mockNode yaml.Node
-		jsonBytes, _ := json.Marshal(mock)
-		_ = yaml.Unmarshal(jsonBytes, &mockNode)
+		_ = yaml.Unmarshal(mockBytes, &mockNode)
 		return status, &mockNode, contentType, nil
 	}
 
-	if example == nil {
+	if exampleNode == nil {
 		return 0, nil, "", fmt.Errorf("no example found and random generation is not enabled for response status %s", statusStr)
 	}
 
-	return status, example.Value, contentType, nil
+	return status, exampleNode, contentType, nil
 }
 
 // ResponseRandom set handler which return response generating random data based on OpenAPI v3 Document schemas.
@@ -893,29 +900,5 @@ func withCloneReq(fn matchFunc) matchFunc {
 	return func(r *http.Request) bool {
 		r2 := cloneReq(r)
 		return fn(r2)
-	}
-}
-
-type config struct {
-	useTLS                              bool
-	cacert, cert, key                   []byte
-	clientCacert, clientCert, clientKey []byte
-	openAPI3Doc                         libopenapi.Document
-	openAPI3Validator                   validator.Validator
-	skipValidateRequest                 bool
-	skipValidateResponse                bool
-	skipCircularReferenceCheck          bool
-	addr                                string
-	basePath                            string
-	mockSeed                            int64 // モック生成のシードを追加
-}
-
-type Option func(*config) error
-
-// WithMockSeed sets a seed for deterministic mock data generation for the entire router.
-func WithMockSeed(seed int64) Option {
-	return func(c *config) error {
-		c.mockSeed = seed
-		return nil
 	}
 }
