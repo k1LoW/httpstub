@@ -709,7 +709,6 @@ func (m *matcher) genMockFromMediaType(mt *v3.MediaType) (*yaml.Node, error) {
 // chooseExampleOrGenerate prefers returning an explicit example when available.
 // If no example exists, it will attempt to generate a mock from the schema.
 func (m *matcher) chooseExampleOrGenerate(mt *v3.MediaType, examples []*yaml.Node, status int, contentType string) (int, *yaml.Node, string, error) {
-	// Prefer explicit examples deterministically.
 	if len(examples) > 0 {
 		if mt.Examples != nil && mt.Examples.Len() > 0 {
 			ex := m.one(mt.Examples)
