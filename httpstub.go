@@ -65,6 +65,7 @@ type Router struct {
 	addr                                string
 	basePath                            string
 	mockGenerator                       *renderer.MockGenerator
+	rng                                 *mrand.Rand
 	mu                                  sync.RWMutex
 }
 
@@ -169,8 +170,8 @@ func NewRouter(t TB, opts ...Option) *Router {
 		seed = time.Now().UnixNano()
 	}
 	mg.SetSeed(seed)
-	mrand.Seed(seed)
 	rt.mockGenerator = mg
+	rt.rng = mrand.New(mrand.NewSource(seed))
 
 	return rt
 }
@@ -628,8 +629,8 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 	m.handler = http.HandlerFunc(fn)
 }
 
-// findResponseContent is a helper method to find the example or generate random data.
-func (m *matcher) findResponseContent(req *http.Request, responses *v3.Responses, pattern string, generateRandom bool) (status int, exampleNode *yaml.Node, contentType string, err error) {
+// selectMatchedResponses returns responses that match the given status pattern.
+func (m *matcher) selectMatchedResponses(responses *v3.Responses, pattern string) ([]orderedmap.Pair[string, *v3.Response], error) {
 	resMap := responses.Codes
 	var matchedResps []orderedmap.Pair[string, *v3.Response]
 	for p := range orderedmap.Iterate(context.Background(), resMap) {
@@ -638,104 +639,96 @@ func (m *matcher) findResponseContent(req *http.Request, responses *v3.Responses
 		}
 	}
 	if len(matchedResps) == 0 {
-		return 0, nil, "", fmt.Errorf("failed to find response matching pattern: %s", pattern)
+		return nil, fmt.Errorf("failed to find response matching pattern: %s", pattern)
 	}
+	return matchedResps, nil
+}
 
-	idx := mrand.Intn(len(matchedResps)) //nolint:gosec
+// pickStatusAndResponse selects one of the matched responses (randomly) and returns its status and response.
+func (m *matcher) pickStatusAndResponse(matchedResps []orderedmap.Pair[string, *v3.Response]) (int, *v3.Response, string, error) {
+	idx := m.router.rng.Intn(len(matchedResps)) //nolint:gosec
 	statusStr := matchedResps[idx].Key()
-	status, err = strconv.Atoi(statusStr)
+	status, err := strconv.Atoi(statusStr)
 	if err != nil {
 		return 0, nil, "", fmt.Errorf("invalid status code: %w", err)
 	}
-	res := matchedResps[idx].Value()
+	return status, matchedResps[idx].Value(), "", nil
+}
 
+// pickMediaType determines the media type to use from response content and request Accept header.
+func (m *matcher) pickMediaType(res *v3.Response, req *http.Request) (*v3.MediaType, string) {
+	if res.Content == nil {
+		return nil, ""
+	}
 	accepts := strings.Split(req.Header.Get("Accept"), ",")
 	var contentTypes []string
 	for _, a := range accepts {
 		contentTypes = append(contentTypes, strings.TrimSpace(a))
 	}
 
-	// Determine media type by Accept header (or fall back to oldest)
 	var mt *v3.MediaType
-	if res.Content != nil {
-		for _, ct := range contentTypes {
-			if tmp, ok := res.Content.Get(ct); ok {
-				mt = tmp
-				contentType = ct
-				break
-			}
-		}
-		if mt == nil {
-			if p := res.Content.Oldest(); p != nil {
-				mt = p.Value
-				contentType = p.Key
-			}
+	var contentType string
+	for _, ct := range contentTypes {
+		if tmp, ok := res.Content.Get(ct); ok {
+			mt = tmp
+			contentType = ct
+			break
 		}
 	}
+	if mt == nil {
+		if p := res.Content.Oldest(); p != nil {
+			mt = p.Value
+			contentType = p.Key
+		}
+	}
+	return mt, contentType
+}
 
-	// collect examples (named or inline) in deterministic order
+// collectExamples gathers examples from a media type in deterministic order.
+func (m *matcher) collectExamples(mt *v3.MediaType) []*yaml.Node {
 	var examples []*yaml.Node
-	if mt != nil {
-		if mt.Examples != nil && mt.Examples.Len() > 0 {
-			for p := range orderedmap.Iterate(context.Background(), mt.Examples) {
-				ex := p.Value()
-				if ex != nil && ex.Value != nil {
-					examples = append(examples, ex.Value)
-				}
-			}
-		} else if mt.Example != nil {
-			examples = append(examples, mt.Example)
-		}
+	if mt == nil {
+		return examples
 	}
-
-	// Helper to generate mock from schema
-	genMock := func() (*yaml.Node, error) {
-		if mt == nil || mt.Schema == nil {
-			return nil, fmt.Errorf("no schema available to generate mock")
+	if mt.Examples != nil && mt.Examples.Len() > 0 {
+		for p := range orderedmap.Iterate(context.Background(), mt.Examples) {
+			ex := p.Value()
+			if ex != nil && ex.Value != nil {
+				examples = append(examples, ex.Value)
+			}
 		}
-		mockBytes, genErr := m.router.mockGenerator.GenerateMock(mt.Schema.Schema(), "")
-		if genErr != nil {
-			return nil, fmt.Errorf("failed to generate mock data: %w", genErr)
-		}
-		var mockNode yaml.Node
-		if err := yaml.Unmarshal(mockBytes, &mockNode); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal generated mock: %w", err)
-		}
-		return &mockNode, nil
+	} else if mt.Example != nil {
+		examples = append(examples, mt.Example)
 	}
+	return examples
+}
 
-	// If GenerateRandom is enabled and schema exists, randomly choose between returning an example (if any)
-	// or generating a mock from the schema. If the chosen path fails, fall back to the other if possible.
-	if generateRandom && mt != nil && mt.Schema != nil {
-		choice := mrand.Intn(2) // 0: example, 1: generate
-		if choice == 0 {
-			// try example first
-			if len(examples) > 0 {
-				if mt.Examples != nil && mt.Examples.Len() > 0 {
-					ex := one(mt.Examples)
-					if ex != nil {
-						return status, ex.Value, contentType, nil
-					}
-				}
-				if mt.Example != nil {
-					return status, mt.Example, contentType, nil
-				}
-			}
-			// fallback to generate
-			if node, e := genMock(); e == nil {
-				return status, node, contentType, nil
-			} else {
-				return 0, nil, "", e
-			}
-		}
-		// choice == 1: try generate first
-		if node, e := genMock(); e == nil {
-			return status, node, contentType, nil
-		}
-		// fallback to example
+// genMockFromMediaType generates a mock yaml.Node from a media type's schema.
+func (m *matcher) genMockFromMediaType(mt *v3.MediaType) (*yaml.Node, error) {
+	if mt == nil || mt.Schema == nil {
+		return nil, fmt.Errorf("no schema available to generate mock")
+	}
+	mockBytes, genErr := m.router.mockGenerator.GenerateMock(mt.Schema.Schema(), "")
+	if genErr != nil {
+		return nil, fmt.Errorf("failed to generate mock data: %w", genErr)
+	}
+	var mockNode yaml.Node
+	if err := yaml.Unmarshal(mockBytes, &mockNode); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal generated mock: %w", err)
+	}
+	return &mockNode, nil
+}
+
+// chooseExampleOrGenerate randomly chooses between returning an example or generating a mock.
+// It implements the coin-flip logic and fallbacks used when random generation is enabled and
+// a schema is available on the media type.
+func (m *matcher) chooseExampleOrGenerate(mt *v3.MediaType, examples []*yaml.Node, status int, contentType string) (int, *yaml.Node, string, error) {
+	choice := m.router.rng.Intn(2) // 0: example, 1: generate
+	if choice == 0 {
+		// try example first
 		if len(examples) > 0 {
 			if mt.Examples != nil && mt.Examples.Len() > 0 {
-				ex := one(mt.Examples)
+				ex := m.one(mt.Examples)
 				if ex != nil {
 					return status, ex.Value, contentType, nil
 				}
@@ -744,37 +737,97 @@ func (m *matcher) findResponseContent(req *http.Request, responses *v3.Responses
 				return status, mt.Example, contentType, nil
 			}
 		}
-		return 0, nil, "", fmt.Errorf("failed to generate mock and no example for response status %s", statusStr)
+		// fallback to generate
+		if node, e := m.genMockFromMediaType(mt); e == nil {
+			return status, node, contentType, nil
+		} else {
+			return 0, nil, "", e
+		}
 	}
-
-	// Default: prefer examples if present (deterministic selection)
+	// choice == 1: try generate first
+	if node, e := m.genMockFromMediaType(mt); e == nil {
+		return status, node, contentType, nil
+	}
+	// fallback to example
 	if len(examples) > 0 {
 		if mt.Examples != nil && mt.Examples.Len() > 0 {
-			for p := range orderedmap.Iterate(context.Background(), mt.Examples) {
-				ex := p.Value()
-				if ex != nil && ex.Value != nil {
-					return status, ex.Value, contentType, nil
-				}
+			ex := m.one(mt.Examples)
+			if ex != nil {
+				return status, ex.Value, contentType, nil
 			}
 		}
 		if mt.Example != nil {
 			return status, mt.Example, contentType, nil
 		}
 	}
+	return 0, nil, "", fmt.Errorf("failed to generate mock and no example for response status %d", status)
+}
 
-	if generateRandom {
-		// generateRandom requested but no schema available
-		if mt != nil && mt.Schema != nil {
-			if node, e := genMock(); e == nil {
-				return status, node, contentType, nil
-			} else {
-				return 0, nil, "", e
+// preferExamples returns the first available example from the media type in deterministic order.
+// The boolean return value indicates whether an example was found.
+func (m *matcher) preferExamples(mt *v3.MediaType, examples []*yaml.Node, status int, contentType string) (int, *yaml.Node, string, bool) {
+	if len(examples) > 0 {
+		if mt.Examples != nil && mt.Examples.Len() > 0 {
+			for p := range orderedmap.Iterate(context.Background(), mt.Examples) {
+				ex := p.Value()
+				if ex != nil && ex.Value != nil {
+					return status, ex.Value, contentType, true
+				}
 			}
 		}
-		return 0, nil, "", fmt.Errorf("no schema available to generate mock for response status %s", statusStr)
+		if mt.Example != nil {
+			return status, mt.Example, contentType, true
+		}
+	}
+	return 0, nil, "", false
+}
+
+// generateIfRequested attempts to generate a mock when requested; returns an error if generation
+// is not possible (no schema) or generation fails.
+func (m *matcher) generateIfRequested(mt *v3.MediaType, status int, contentType string) (int, *yaml.Node, string, error) {
+	if mt != nil && mt.Schema != nil {
+		if node, e := m.genMockFromMediaType(mt); e == nil {
+			return status, node, contentType, nil
+		} else {
+			return 0, nil, "", e
+		}
+	}
+	return 0, nil, "", fmt.Errorf("no schema available to generate mock for response status %d", status)
+}
+
+// findResponseContent is a helper method to find the example or generate random data.
+func (m *matcher) findResponseContent(req *http.Request, responses *v3.Responses, pattern string, generateRandom bool) (status int, exampleNode *yaml.Node, contentType string, err error) {
+	matchedResps, err := m.selectMatchedResponses(responses, pattern)
+	if err != nil {
+		return 0, nil, "", err
 	}
 
-	return 0, nil, "", fmt.Errorf("no example found and random generation is not enabled for response status %s", statusStr)
+	status, res, _, err := m.pickStatusAndResponse(matchedResps)
+	if err != nil {
+		return 0, nil, "", err
+	}
+
+	mt, ct := m.pickMediaType(res, req)
+	contentType = ct
+
+	examples := m.collectExamples(mt)
+
+	// If GenerateRandom is enabled and schema exists, use helper to choose example or generate.
+	if generateRandom && mt != nil && mt.Schema != nil {
+		return m.chooseExampleOrGenerate(mt, examples, status, contentType)
+	}
+
+	// Default: prefer examples if present (deterministic selection)
+	if s, node, ct, ok := m.preferExamples(mt, examples, status, contentType); ok {
+		return s, node, ct, nil
+	}
+
+	// If generation was requested but no schema path previously taken, try generating and return its result or an error.
+	if generateRandom {
+		return m.generateIfRequested(mt, status, contentType)
+	}
+
+	return 0, nil, "", fmt.Errorf("no example found and random generation is not enabled for response status %d", status)
 }
 
 // ResponseRandom set handler which return response generating random data based on OpenAPI v3 Document schemas.
@@ -933,13 +986,13 @@ func (t *transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	return res, err
 }
 
-func one[K comparable, V *base.Example](m *orderedmap.Map[K, V]) V {
-	l := m.Len()
+func (m *matcher) one(mp *orderedmap.Map[string, *base.Example]) *base.Example {
+	l := mp.Len()
 	if l == 0 {
 		return nil
 	}
-	i := mrand.Intn(l)
-	for p := range orderedmap.Iterate(context.Background(), m) {
+	i := m.router.rng.Intn(l)
+	for p := range orderedmap.Iterate(context.Background(), mp) {
 		if i == 0 {
 			return p.Value()
 		}
