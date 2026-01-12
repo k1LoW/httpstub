@@ -553,10 +553,10 @@ func GenerateRandom(enabled bool) responseExampleOption {
 	}
 }
 
-// MockSeed sets a seed for deterministic mock data generation.
+// Seed sets a seed for deterministic mock data generation.
 // This works only when GenerateRandom is enabled.
-// NOTE: MockSeed was intentionally removed from response-level options.
-// Seeding should be applied at the Router level via WithMockSeed.
+// NOTE: Seed was intentionally removed from response-level options.
+// Seeding should be applied at the Router level via Seed.
 
 // ResponseExample set handler which return response using examples of OpenAPI v3 Document.
 // If GenerateRandom is enabled and no explicit example is found, it will generate random data based on the schema.
