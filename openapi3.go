@@ -2,6 +2,7 @@ package httpstub
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 )
 
 var _ http.ResponseWriter = (*recorder)(nil)
+
+type openapi3ValidationErrorKey struct{}
 
 type recorder struct {
 	rw         http.ResponseWriter
@@ -63,6 +66,8 @@ func (rt *Router) setOpenApi3Vaildator() error {
 			if !rt.skipValidateRequest {
 				_, errs := v.ValidateHttpRequest(r)
 				if len(errs) > 0 {
+					// mark that request validation failed to avoid duplicate logs in response validation
+					r = r.WithContext(context.WithValue(r.Context(), openapi3ValidationErrorKey{}, true))
 					{
 						// renew validator (workaround)
 						// ref: https://github.com/k1LoW/runn/issues/882
@@ -85,6 +90,10 @@ func (rt *Router) setOpenApi3Vaildator() error {
 			next.ServeHTTP(rec, r)
 
 			if !rt.skipValidateResponse {
+				// if request validation already failed, avoid duplicate response validation logging
+				if r.Context().Value(openapi3ValidationErrorKey{}) != nil {
+					return
+				}
 				_, errs := v.ValidateHttpResponse(r, rec.toResponse())
 				if len(errs) > 0 {
 					{
