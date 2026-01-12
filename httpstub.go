@@ -3,14 +3,12 @@ package httpstub
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	mrand "math/rand"
 	"net"
 	"net/http"
@@ -162,14 +160,16 @@ func NewRouter(t TB, opts ...Option) *Router {
 		t.Fatal(err)
 	}
 
-	// Initialize MockGenerator (use JSON mock type)
+	// Initialize MockGenerator (use JSON mock type) and seed math/rand for deterministic example selection in tests
 	mg := renderer.NewMockGenerator(renderer.JSON)
+	var seed int64
 	if c.mockSeed != 0 {
-		mg.SetSeed(c.mockSeed)
+		seed = c.mockSeed
 	} else {
-		// If no seed is specified, the timestamp will be used by default.
-		mg.SetSeed(time.Now().UnixNano())
+		seed = time.Now().UnixNano()
 	}
+	mg.SetSeed(seed)
+	mrand.Seed(seed)
 	rt.mockGenerator = mg
 
 	return rt
@@ -747,12 +747,14 @@ func (m *matcher) findResponseContent(req *http.Request, responses *v3.Responses
 		return 0, nil, "", fmt.Errorf("failed to generate mock and no example for response status %s", statusStr)
 	}
 
-	// Default: prefer examples if present
+	// Default: prefer examples if present (deterministic selection)
 	if len(examples) > 0 {
 		if mt.Examples != nil && mt.Examples.Len() > 0 {
-			ex := one(mt.Examples)
-			if ex != nil {
-				return status, ex.Value, contentType, nil
+			for p := range orderedmap.Iterate(context.Background(), mt.Examples) {
+				ex := p.Value()
+				if ex != nil && ex.Value != nil {
+					return status, ex.Value, contentType, nil
+				}
 			}
 		}
 		if mt.Example != nil {
@@ -933,15 +935,10 @@ func (t *transport) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func one[K comparable, V *base.Example](m *orderedmap.Map[K, V]) V {
 	l := m.Len()
-	n, err := rand.Int(rand.Reader, big.NewInt(int64(l)))
-	if err != nil {
-		// Return the first element if an error occurs
-		for p := range orderedmap.Iterate(context.Background(), m) {
-			return p.Value()
-		}
+	if l == 0 {
 		return nil
 	}
-	i := int(n.Int64())
+	i := mrand.Intn(l)
 	for p := range orderedmap.Iterate(context.Background(), m) {
 		if i == 0 {
 			return p.Value()

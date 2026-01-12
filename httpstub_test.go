@@ -1146,6 +1146,120 @@ func TestResponseRandom(t *testing.T) {
 	}
 }
 
+func TestResponseExampleDeterministicWhenGenerateRandomFalse(t *testing.T) {
+	// Two routers seeded the same; GenerateRandom is false so only examples are used.
+	rt1 := NewRouter(t, OpenApi3("testdata/openapi3-multi-examples.yml"), WithMockSeed(1))
+	rt1.ResponseExample(Status("200"))
+	ts1 := rt1.Server()
+	t.Cleanup(func() { ts1.Close() })
+	tc1 := ts1.Client()
+
+	rt2 := NewRouter(t, OpenApi3("testdata/openapi3-multi-examples.yml"), WithMockSeed(1))
+	rt2.ResponseExample(Status("200"))
+	ts2 := rt2.Server()
+	t.Cleanup(func() { ts2.Close() })
+	tc2 := ts2.Client()
+
+	res1, err := tc1.Get("https://example.com/api/v1/multi")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { res1.Body.Close() })
+	b1, err := io.ReadAll(res1.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res2, err := tc2.Get("https://example.com/api/v1/multi")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { res2.Body.Close() })
+	b2, err := io.ReadAll(res2.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(b1) != string(b2) {
+		t.Fatalf("expected identical example responses when GenerateRandom is false and same seed, got:\n%s\n%s", string(b1), string(b2))
+	}
+}
+
+func TestResponseExampleDifferentWhenGenerateRandomTrue(t *testing.T) {
+	// For generation check, use a path that has schema but no examples: /users/{id}
+	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), WithMockSeed(1))
+	rt1.ResponseExample(Status("200"), GenerateRandom(true))
+	ts1 := rt1.Server()
+	t.Cleanup(func() { ts1.Close() })
+	tc1 := ts1.Client()
+
+	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), WithMockSeed(2))
+	rt2.ResponseExample(Status("200"), GenerateRandom(true))
+	ts2 := rt2.Server()
+	t.Cleanup(func() { ts2.Close() })
+	tc2 := ts2.Client()
+
+	res1, err := tc1.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { res1.Body.Close() })
+	b1, err := io.ReadAll(res1.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res2, err := tc2.Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { res2.Body.Close() })
+	b2, err := io.ReadAll(res2.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(b1) == string(b2) {
+		t.Fatalf("expected different responses when GenerateRandom is true and seeds differ, got identical:\n%s", string(b1))
+	}
+}
+
+func TestResponsePatternGeneratesDifferentValues(t *testing.T) {
+	// Endpoint /pattern has a schema with pattern; generated values should differ across requests
+	rt := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
+	rt.ResponseRandom(Status("200"))
+	ts := rt.Server()
+	t.Cleanup(func() { ts.Close() })
+	tc := ts.Client()
+
+	res1, err := tc.Get("https://example.com/api/v1/pattern")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { res1.Body.Close() })
+	b1, err := io.ReadAll(res1.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res2, err := tc.Get("https://example.com/api/v1/pattern")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { res2.Body.Close() })
+	b2, err := io.ReadAll(res2.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(b1) == 0 || len(b2) == 0 {
+		t.Fatalf("expected non-empty bodies, got len(b1)=%d len(b2)=%d", len(b1), len(b2))
+	}
+	if string(b1) == string(b2) {
+		t.Fatalf("expected different generated values for schema with pattern, got identical:\n%s", string(b1))
+	}
+}
+
 func BenchmarkNewServer(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		ts := NewServer(b)
