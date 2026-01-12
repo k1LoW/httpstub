@@ -26,6 +26,7 @@ type config struct {
 	skipCircularReferenceCheck          bool
 	addr                                string
 	basePath                            string
+	mockSeed                            int64
 }
 
 type Option func(*config) error
@@ -210,6 +211,14 @@ func BasePath(basePath string) Option {
 			return errors.New("basePath must not end with '/'")
 		}
 		c.basePath = basePath
+		return nil
+	}
+}
+
+// WithMockSeed sets a seed for deterministic mock data generation for the entire router.
+func WithMockSeed(seed int64) Option {
+	return func(c *config) error {
+		c.mockSeed = seed
 		return nil
 	}
 }
