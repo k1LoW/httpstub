@@ -797,9 +797,9 @@ func (m *matcher) findResponseContent(req *http.Request, responses *v3.Responses
 	return 0, nil, "", fmt.Errorf("no example found and random generation is not enabled for response status %d", status)
 }
 
-// ResponseRandom set handler which return response generating random data based on OpenAPI v3 Document schemas.
+// ResponseDynamic set handler which return response generating random data based on OpenAPI v3 Document schemas.
 // The `libopenapi/renderer.MockGenerator` will be used for generation.
-func (m *matcher) ResponseRandom(opts ...responseExampleOption) {
+func (m *matcher) ResponseDynamic(opts ...responseExampleOption) {
 	// Force the GenerateRandom option to true.
 	newOpts := make([]responseExampleOption, 0, len(opts)+1)
 	newOpts = append(newOpts, GenerateRandom(true))
@@ -819,8 +819,8 @@ func (rt *Router) ResponseExample(opts ...responseExampleOption) {
 	m.ResponseExample(opts...)
 }
 
-// ResponseRandom set handler which return response generating random data based on OpenAPI v3 Document schemas.
-func (rt *Router) ResponseRandom(opts ...responseExampleOption) {
+// ResponseDynamic set handler which return response generating random data based on OpenAPI v3 Document schemas.
+func (rt *Router) ResponseDynamic(opts ...responseExampleOption) {
 	m := &matcher{
 		matchFuncs: []matchFunc{func(_ *http.Request) bool { return true }},
 		router:     rt,
@@ -828,7 +828,7 @@ func (rt *Router) ResponseRandom(opts ...responseExampleOption) {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
 	rt.addMatcher(m)
-	m.ResponseRandom(opts...)
+	m.ResponseDynamic(opts...)
 }
 
 // Requests returns []*http.Request received by router.

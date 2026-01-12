@@ -1096,10 +1096,10 @@ func TestBasePathWithResponseExample(t *testing.T) {
 	}
 }
 
-func TestResponseRandom(t *testing.T) {
+func TestResponseDynamic(t *testing.T) {
 	// Use an OpenAPI path that has a schema but no examples: /users/{id}
 	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), WithMockSeed(1))
-	rt1.ResponseRandom(Status("200"))
+	rt1.ResponseDynamic(Status("200"))
 	ts1 := rt1.Server()
 	t.Cleanup(func() { ts1.Close() })
 	tc1 := ts1.Client()
@@ -1115,7 +1115,7 @@ func TestResponseRandom(t *testing.T) {
 	}
 
 	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), WithMockSeed(2))
-	rt2.ResponseRandom(Status("200"))
+	rt2.ResponseDynamic(Status("200"))
 	ts2 := rt2.Server()
 	t.Cleanup(func() { ts2.Close() })
 	tc2 := ts2.Client()
@@ -1227,7 +1227,7 @@ func TestResponseExampleDifferentWhenGenerateRandomTrue(t *testing.T) {
 func TestResponsePatternGeneratesDifferentValues(t *testing.T) {
 	// Endpoint /pattern has a schema with pattern; generated values should differ across requests
 	rt := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
-	rt.ResponseRandom(Status("200"))
+	rt.ResponseDynamic(Status("200"))
 	ts := rt.Server()
 	t.Cleanup(func() { ts.Close() })
 	tc := ts.Client()
