@@ -164,8 +164,8 @@ func NewRouter(t TB, opts ...Option) *Router {
 	// Initialize MockGenerator (use JSON mock type) and seed math/rand for deterministic example selection in tests
 	mg := renderer.NewMockGenerator(renderer.JSON)
 	var seed int64
-	if c.mockSeed != 0 {
-		seed = c.mockSeed
+	if c.seed != 0 {
+		seed = c.seed
 	} else {
 		seed = time.Now().UnixNano()
 	}

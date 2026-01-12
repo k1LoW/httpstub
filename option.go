@@ -26,7 +26,7 @@ type config struct {
 	skipCircularReferenceCheck          bool
 	addr                                string
 	basePath                            string
-	mockSeed                            int64
+	seed                                int64
 }
 
 type Option func(*config) error
@@ -215,10 +215,10 @@ func BasePath(basePath string) Option {
 	}
 }
 
-// WithMockSeed sets a seed for deterministic mock data generation for the entire router.
-func WithMockSeed(seed int64) Option {
+// Seed sets a seed for deterministic mock data generation for the entire router.
+func Seed(seed int64) Option {
 	return func(c *config) error {
-		c.mockSeed = seed
+		c.seed = seed
 		return nil
 	}
 }

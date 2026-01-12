@@ -1098,7 +1098,7 @@ func TestBasePathWithResponseExample(t *testing.T) {
 
 func TestResponseDynamic(t *testing.T) {
 	// Use an OpenAPI path that has a schema but no examples: /users/{id}
-	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), WithMockSeed(1))
+	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), Seed(1))
 	rt1.ResponseDynamic(Status("200"))
 	ts1 := rt1.Server()
 	t.Cleanup(func() { ts1.Close() })
@@ -1114,7 +1114,7 @@ func TestResponseDynamic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), WithMockSeed(2))
+	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), Seed(2))
 	rt2.ResponseDynamic(Status("200"))
 	ts2 := rt2.Server()
 	t.Cleanup(func() { ts2.Close() })
@@ -1148,13 +1148,13 @@ func TestResponseDynamic(t *testing.T) {
 
 func TestResponseExampleDeterministicWhenGenerateRandomFalse(t *testing.T) {
 	// Two routers seeded the same; GenerateRandom is false so only examples are used.
-	rt1 := NewRouter(t, OpenApi3("testdata/openapi3-multi-examples.yml"), WithMockSeed(1))
+	rt1 := NewRouter(t, OpenApi3("testdata/openapi3-multi-examples.yml"), Seed(1))
 	rt1.ResponseExample(Status("200"))
 	ts1 := rt1.Server()
 	t.Cleanup(func() { ts1.Close() })
 	tc1 := ts1.Client()
 
-	rt2 := NewRouter(t, OpenApi3("testdata/openapi3-multi-examples.yml"), WithMockSeed(1))
+	rt2 := NewRouter(t, OpenApi3("testdata/openapi3-multi-examples.yml"), Seed(1))
 	rt2.ResponseExample(Status("200"))
 	ts2 := rt2.Server()
 	t.Cleanup(func() { ts2.Close() })
@@ -1187,13 +1187,13 @@ func TestResponseExampleDeterministicWhenGenerateRandomFalse(t *testing.T) {
 
 func TestResponseExampleDifferentWhenGenerateRandomTrue(t *testing.T) {
 	// For generation check, use a path that has schema but no examples: /users/{id}
-	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), WithMockSeed(1))
+	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), Seed(1))
 	rt1.ResponseExample(Status("200"), GenerateRandom(true))
 	ts1 := rt1.Server()
 	t.Cleanup(func() { ts1.Close() })
 	tc1 := ts1.Client()
 
-	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), WithMockSeed(2))
+	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), Seed(2))
 	rt2.ResponseExample(Status("200"), GenerateRandom(true))
 	ts2 := rt2.Server()
 	t.Cleanup(func() { ts2.Close() })
