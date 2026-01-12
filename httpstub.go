@@ -719,36 +719,10 @@ func (m *matcher) genMockFromMediaType(mt *v3.MediaType) (*yaml.Node, error) {
 	return &mockNode, nil
 }
 
-// chooseExampleOrGenerate randomly chooses between returning an example or generating a mock.
-// It implements the coin-flip logic and fallbacks used when random generation is enabled and
-// a schema is available on the media type.
+// chooseExampleOrGenerate prefers returning an explicit example when available.
+// If no example exists, it will attempt to generate a mock from the schema.
 func (m *matcher) chooseExampleOrGenerate(mt *v3.MediaType, examples []*yaml.Node, status int, contentType string) (int, *yaml.Node, string, error) {
-	choice := m.router.rng.Intn(2) // 0: example, 1: generate
-	if choice == 0 {
-		// try example first
-		if len(examples) > 0 {
-			if mt.Examples != nil && mt.Examples.Len() > 0 {
-				ex := m.one(mt.Examples)
-				if ex != nil {
-					return status, ex.Value, contentType, nil
-				}
-			}
-			if mt.Example != nil {
-				return status, mt.Example, contentType, nil
-			}
-		}
-		// fallback to generate
-		if node, e := m.genMockFromMediaType(mt); e == nil {
-			return status, node, contentType, nil
-		} else {
-			return 0, nil, "", e
-		}
-	}
-	// choice == 1: try generate first
-	if node, e := m.genMockFromMediaType(mt); e == nil {
-		return status, node, contentType, nil
-	}
-	// fallback to example
+	// Prefer explicit examples deterministically.
 	if len(examples) > 0 {
 		if mt.Examples != nil && mt.Examples.Len() > 0 {
 			ex := m.one(mt.Examples)
@@ -760,7 +734,13 @@ func (m *matcher) chooseExampleOrGenerate(mt *v3.MediaType, examples []*yaml.Nod
 			return status, mt.Example, contentType, nil
 		}
 	}
-	return 0, nil, "", fmt.Errorf("failed to generate mock and no example for response status %d", status)
+
+	// No example found: attempt to generate from schema.
+	if node, e := m.genMockFromMediaType(mt); e == nil {
+		return status, node, contentType, nil
+	} else {
+		return 0, nil, "", fmt.Errorf("failed to generate mock and no example for response status %d: %w", status, e)
+	}
 }
 
 // preferExamples returns the first available example from the media type in deterministic order.
