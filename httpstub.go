@@ -680,11 +680,10 @@ func (m *matcher) findResponseContent(req *http.Request, responses *v3.Responses
 	}
 
 	// If there is no match in the Accept header, use the first Content-Type and Media Type.
-	// If there is no match in the Accept header, use the first Content-Type and Media Type.
 	if mt == nil && res.Content != nil {
-		for p := range orderedmap.Iterate(context.Background(), res.Content) {
-			mt = p.Value()
-			contentType = p.Key()
+		if p := res.Content.Oldest(); p != nil {
+			mt = p.Value
+			contentType = p.Key
 			if mt.Examples != nil && mt.Examples.Len() > 0 {
 				ex := one(mt.Examples)
 				if ex != nil {
@@ -693,7 +692,6 @@ func (m *matcher) findResponseContent(req *http.Request, responses *v3.Responses
 			} else if mt.Example != nil {
 				exampleNode = mt.Example
 			}
-			break
 		}
 	}
 
