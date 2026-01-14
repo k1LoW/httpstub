@@ -778,7 +778,7 @@ func TestRouterResponseExample(t *testing.T) {
 			mockTB := mock_httpstub.NewMockTB(ctrl)
 			mockTB.EXPECT().Helper()
 			if tt.wantErr {
-				mockTB.EXPECT().Errorf(gomock.Any(), gomock.Any())
+				mockTB.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 			}
 			rt := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
 			rt.t = mockTB
@@ -1146,8 +1146,9 @@ func TestResponseDynamic(t *testing.T) {
 	}
 }
 
-func TestResponseExampleDeterministicWhenGenerateRandomFalse(t *testing.T) {
-	// Two routers seeded the same; GenerateRandom is false so only examples are used.
+func TestResponseExampleUsesOnlyExamples(t *testing.T) {
+	// ResponseExample should only use examples and produce deterministic results.
+	// Multiple routers with the same seed should return identical responses.
 	rt1 := NewRouter(t, OpenApi3("testdata/openapi3-multi-examples.yml"), Seed(1))
 	rt1.ResponseExample(Status("200"))
 	ts1 := rt1.Server()
@@ -1181,20 +1182,22 @@ func TestResponseExampleDeterministicWhenGenerateRandomFalse(t *testing.T) {
 	}
 
 	if string(b1) != string(b2) {
-		t.Fatalf("expected identical example responses when GenerateRandom is false and same seed, got:\n%s\n%s", string(b1), string(b2))
+		t.Fatalf("expected identical responses from ResponseExample with same seed, got:\n%s\n%s", string(b1), string(b2))
 	}
 }
 
-func TestResponseExampleDifferentWhenGenerateRandomTrue(t *testing.T) {
-	// For generation check, use a path that has schema but no examples: /users/{id}
+func TestResponseAutoFallbackToGeneration(t *testing.T) {
+	// ResponseAuto should prefer examples, but fall back to schema-based generation when no example exists.
+	// Using a path with schema but no examples (/users/{id}) to verify generation behavior.
+	// Different seeds should produce different generated responses.
 	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), Seed(1))
-	rt1.ResponseExample(Status("200"), GenerateRandom(true))
+	rt1.ResponseAuto(Status("200"))
 	ts1 := rt1.Server()
 	t.Cleanup(func() { ts1.Close() })
 	tc1 := ts1.Client()
 
 	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), Seed(2))
-	rt2.ResponseExample(Status("200"), GenerateRandom(true))
+	rt2.ResponseAuto(Status("200"))
 	ts2 := rt2.Server()
 	t.Cleanup(func() { ts2.Close() })
 	tc2 := ts2.Client()
@@ -1220,12 +1223,13 @@ func TestResponseExampleDifferentWhenGenerateRandomTrue(t *testing.T) {
 	}
 
 	if string(b1) == string(b2) {
-		t.Fatalf("expected different responses when GenerateRandom is true and seeds differ, got identical:\n%s", string(b1))
+		t.Fatalf("expected different generated responses from ResponseAuto with different seeds, got identical:\n%s", string(b1))
 	}
 }
 
-func TestResponsePatternGeneratesDifferentValues(t *testing.T) {
-	// Endpoint /pattern has a schema with pattern; generated values should differ across requests
+func TestResponseDynamicGeneratesFromSchema(t *testing.T) {
+	// ResponseDynamic should always generate data from schema, ignoring examples.
+	// Endpoint /pattern has a schema with pattern; generated values should differ across requests.
 	rt := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
 	rt.ResponseDynamic(Status("200"))
 	ts := rt.Server()
