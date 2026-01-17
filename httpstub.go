@@ -37,6 +37,21 @@ var (
 	_ TB           = (testing.TB)(nil)
 )
 
+// ResponseMode defines how to generate responses from OpenAPI documents.
+type ResponseMode int
+
+const (
+	// ExamplesOnly uses only explicit examples from the OpenAPI document.
+	// If no example is found, an error is returned.
+	// This is the default behavior.
+	ExamplesOnly ResponseMode = iota
+	// DynamicOnly always generates responses from schemas.
+	// Examples are ignored.
+	DynamicOnly
+	// Auto prefers examples but falls back to schema generation.
+	Auto
+)
+
 type TB interface {
 	Error(args ...any)
 	Errorf(format string, args ...any)
@@ -525,11 +540,15 @@ func (m *matcher) ResponseStringf(status int, format string, a ...any) {
 }
 
 type responseExampleConfig struct {
-	status string
+	status       string
+	responseMode ResponseMode
 }
 
 func newResponseExampleConfig() *responseExampleConfig {
-	return &responseExampleConfig{status: "*"}
+	return &responseExampleConfig{
+		status:       "*",
+		responseMode: ExamplesOnly,
+	}
 }
 
 type responseExampleOption func(c *responseExampleConfig) error
@@ -542,63 +561,15 @@ func Status(pattern string) responseExampleOption {
 	}
 }
 
-// ResponseExample set handler which return response using examples of OpenAPI v3 Document.
-// This method only uses explicit examples and does not fall back to schema-based generation.
-func (m *matcher) ResponseExample(opts ...responseExampleOption) {
-	if m.router.openAPI3Doc == nil {
-		m.router.t.Error("no OpenAPI v3 document is set")
-		return
+// PrioritizeExamples specifies the response mode.
+// - ExamplesOnly: Use only explicit examples (error if not found)
+// - DynamicOnly: Always generate from schema (ignore examples)
+// - Auto: Prefer examples, fallback to schema (default)
+func PrioritizeExamples(responseMode ResponseMode) responseExampleOption {
+	return func(c *responseExampleConfig) error {
+		c.responseMode = responseMode
+		return nil
 	}
-	c := newResponseExampleConfig()
-	for _, opt := range opts {
-		if err := opt(c); err != nil {
-			m.router.t.Error(err)
-			return
-		}
-	}
-
-	doc := m.router.openAPI3Doc
-	v3m, err := doc.BuildV3Model()
-	if err != nil {
-		m.router.t.Errorf("failed to build OpenAPI v3 model: %v", err)
-		return
-	}
-	regexCache := &sync.Map{}
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		pathItem, errs, pathValue := paths.FindPath(r, &v3m.Model, regexCache)
-		if pathItem == nil || errs != nil {
-			var err error
-			for _, e := range errs {
-				err = errors.Join(err, e)
-			}
-			m.router.t.Errorf("failed to find route for %v %v: %v", r.Method, r.URL.Path, err)
-			return
-		}
-		op, ok := pathItem.GetOperations().Get(strings.ToLower(r.Method))
-		if !ok {
-			m.router.t.Errorf("failed to find route (%v %v) operation of method: %s", r.Method, pathValue, r.Method)
-			return
-		}
-
-		status, exampleNode, contentType, err := m.findResponseExample(r, op.Responses, c.status)
-		if err != nil {
-			m.router.t.Errorf("failed to find example for route (%v %v): %v", r.Method, pathValue, err)
-			return
-		}
-		var b []byte
-		if exampleNode != nil {
-			b, err = openapijson.YAMLNodeToJSON(exampleNode, "  ")
-			if err != nil {
-				m.router.t.Errorf("failed to marshal body of route (%v %v %v)", status, r.Method, pathValue)
-				return
-			}
-		}
-
-		w.Header().Set("Content-Type", contentType)
-		w.WriteHeader(status)
-		_, _ = w.Write(b)
-	}
-	m.handler = http.HandlerFunc(fn)
 }
 
 // selectMatchedResponses returns responses that match the given status pattern.
@@ -763,69 +734,8 @@ func (m *matcher) findResponseContentAuto(req *http.Request, responses *v3.Respo
 	return m.generateFromSchema(mt, status, contentType)
 }
 
-// ResponseAuto set handler which automatically selects a response.
-// It prefers explicit examples from the OpenAPI v3 Document, but falls back to
-// schema-based random data generation if no example is found.
-func (m *matcher) ResponseAuto(opts ...responseExampleOption) {
-	if m.router.openAPI3Doc == nil {
-		m.router.t.Error("no OpenAPI v3 document is set")
-		return
-	}
-	c := newResponseExampleConfig()
-	for _, opt := range opts {
-		if err := opt(c); err != nil {
-			m.router.t.Error(err)
-			return
-		}
-	}
-
-	doc := m.router.openAPI3Doc
-	v3m, err := doc.BuildV3Model()
-	if err != nil {
-		m.router.t.Errorf("failed to build OpenAPI v3 model: %v", err)
-		return
-	}
-	regexCache := &sync.Map{}
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		pathItem, errs, pathValue := paths.FindPath(r, &v3m.Model, regexCache)
-		if pathItem == nil || errs != nil {
-			var err error
-			for _, e := range errs {
-				err = errors.Join(err, e)
-			}
-			m.router.t.Errorf("failed to find route for %v %v: %v", r.Method, r.URL.Path, err)
-			return
-		}
-		op, ok := pathItem.GetOperations().Get(strings.ToLower(r.Method))
-		if !ok {
-			m.router.t.Errorf("failed to find route (%v %v) operation of method: %s", r.Method, pathValue, r.Method)
-			return
-		}
-
-		status, exampleNode, contentType, err := m.findResponseContentAuto(r, op.Responses, c.status)
-		if err != nil {
-			m.router.t.Errorf("failed to find or generate response for route (%v %v): %v", r.Method, pathValue, err)
-			return
-		}
-		var b []byte
-		if exampleNode != nil {
-			b, err = openapijson.YAMLNodeToJSON(exampleNode, "  ")
-			if err != nil {
-				m.router.t.Errorf("failed to marshal body of route (%v %v %v)", status, r.Method, pathValue)
-				return
-			}
-		}
-
-		w.Header().Set("Content-Type", contentType)
-		w.WriteHeader(status)
-		_, _ = w.Write(b)
-	}
-	m.handler = http.HandlerFunc(fn)
-}
-
-// ResponseDynamic set handler which return response generating random data based on OpenAPI v3 Document schemas.
-// The `libopenapi/renderer.MockGenerator` will be used for generation.
-// This method does not use examples and always generates data from schemas.
+// ResponseDynamic set handler which return response from OpenAPI v3 Document.
+// The response mode can be specified using the PrioritizeExamples option.
 func (m *matcher) ResponseDynamic(opts ...responseExampleOption) {
 	if m.router.openAPI3Doc == nil {
 		m.router.t.Error("no OpenAPI v3 document is set")
@@ -862,7 +772,24 @@ func (m *matcher) ResponseDynamic(opts ...responseExampleOption) {
 			return
 		}
 
-		status, exampleNode, contentType, err := m.findResponseContentDynamic(r, op.Responses, c.status)
+		var status int
+		var exampleNode *yaml.Node
+		var contentType string
+		var err error
+
+		// Select response generation method based on response mode
+		switch c.responseMode {
+		case ExamplesOnly:
+			status, exampleNode, contentType, err = m.findResponseExample(r, op.Responses, c.status)
+		case DynamicOnly:
+			status, exampleNode, contentType, err = m.findResponseContentDynamic(r, op.Responses, c.status)
+		case Auto:
+			status, exampleNode, contentType, err = m.findResponseContentAuto(r, op.Responses, c.status)
+		default:
+			// Default to exmples only
+			status, exampleNode, contentType, err = m.findResponseExample(r, op.Responses, c.status)
+		}
+
 		if err != nil {
 			m.router.t.Errorf("failed to generate response for route (%v %v): %v", r.Method, pathValue, err)
 			return
@@ -883,32 +810,8 @@ func (m *matcher) ResponseDynamic(opts ...responseExampleOption) {
 	m.handler = http.HandlerFunc(fn)
 }
 
-// ResponseExample set handler which return response using examples of OpenAPI v3 Document.
-func (rt *Router) ResponseExample(opts ...responseExampleOption) {
-	m := &matcher{
-		matchFuncs: []matchFunc{func(_ *http.Request) bool { return true }},
-		router:     rt,
-	}
-	rt.mu.Lock()
-	defer rt.mu.Unlock()
-	rt.addMatcher(m)
-	m.ResponseExample(opts...)
-}
-
-// ResponseAuto set handler which automatically selects a response.
-// It prefers explicit examples, but falls back to schema-based generation if no example is found.
-func (rt *Router) ResponseAuto(opts ...responseExampleOption) {
-	m := &matcher{
-		matchFuncs: []matchFunc{func(_ *http.Request) bool { return true }},
-		router:     rt,
-	}
-	rt.mu.Lock()
-	defer rt.mu.Unlock()
-	rt.addMatcher(m)
-	m.ResponseAuto(opts...)
-}
-
-// ResponseDynamic set handler which return response generating random data based on OpenAPI v3 Document schemas.
+// ResponseDynamic set handler which return response from OpenAPI v3 Document.
+// The response mode can be specified using the PrioritizeExamples option.
 func (rt *Router) ResponseDynamic(opts ...responseExampleOption) {
 	m := &matcher{
 		matchFuncs: []matchFunc{func(_ *http.Request) bool { return true }},
