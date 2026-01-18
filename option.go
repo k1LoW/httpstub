@@ -27,6 +27,7 @@ type config struct {
 	addr                                string
 	basePath                            string
 	seed                                int64
+	responseMode                        ResponseMode
 }
 
 type Option func(*config) error
@@ -219,6 +220,17 @@ func BasePath(basePath string) Option {
 func Seed(seed int64) Option {
 	return func(c *config) error {
 		c.seed = seed
+		return nil
+	}
+}
+
+// WithResponseMode sets the response mode for ResponseDynamic.
+// - ExamplesOnly: Use only explicit examples (error if not found) - default
+// - AlwaysGenerate: Always generate from schema (ignore examples)
+// - PreferExamples: Prefer examples, fallback to schema generation
+func WithResponseMode(mode ResponseMode) Option {
+	return func(c *config) error {
+		c.responseMode = mode
 		return nil
 	}
 }

@@ -45,11 +45,11 @@ const (
 	// If no example is found, an error is returned.
 	// This is the default behavior.
 	ExamplesOnly ResponseMode = iota
-	// DynamicOnly always generates responses from schemas.
+	// AlwaysGenerate always generates responses from schemas.
 	// Examples are ignored.
-	DynamicOnly
-	// Auto prefers examples but falls back to schema generation.
-	Auto
+	AlwaysGenerate
+	// PreferExamples prefers examples but falls back to schema generation.
+	PreferExamples
 )
 
 type TB interface {
@@ -80,6 +80,7 @@ type Router struct {
 	basePath                            string
 	mockGenerator                       *renderer.MockGenerator
 	rng                                 *mrand.Rand
+	responseMode                        ResponseMode
 	mu                                  sync.RWMutex
 }
 
@@ -155,6 +156,11 @@ func NewRouter(t TB, opts ...Option) *Router {
 		}
 	}
 
+	mode := c.responseMode
+	if mode == 0 {
+		mode = ExamplesOnly
+	}
+
 	rt := &Router{
 		t:                    t,
 		useTLS:               c.useTLS,
@@ -170,6 +176,7 @@ func NewRouter(t TB, opts ...Option) *Router {
 		skipValidateResponse: c.skipValidateResponse,
 		addr:                 c.addr,
 		basePath:             c.basePath,
+		responseMode:         mode,
 	}
 	if err := rt.setOpenApi3Vaildator(); err != nil {
 		t.Fatal(err)
@@ -540,14 +547,12 @@ func (m *matcher) ResponseStringf(status int, format string, a ...any) {
 }
 
 type responseExampleConfig struct {
-	status       string
-	responseMode ResponseMode
+	status string
 }
 
 func newResponseExampleConfig() *responseExampleConfig {
 	return &responseExampleConfig{
-		status:       "*",
-		responseMode: ExamplesOnly,
+		status: "*",
 	}
 }
 
@@ -557,17 +562,6 @@ type responseExampleOption func(c *responseExampleConfig) error
 func Status(pattern string) responseExampleOption {
 	return func(c *responseExampleConfig) error {
 		c.status = pattern
-		return nil
-	}
-}
-
-// PrioritizeExamples specifies the response mode.
-// - ExamplesOnly: Use only explicit examples (error if not found)
-// - DynamicOnly: Always generate from schema (ignore examples)
-// - Auto: Prefer examples, fallback to schema (default)
-func PrioritizeExamples(responseMode ResponseMode) responseExampleOption {
-	return func(c *responseExampleConfig) error {
-		c.responseMode = responseMode
 		return nil
 	}
 }
@@ -735,7 +729,7 @@ func (m *matcher) findResponseContentAuto(req *http.Request, responses *v3.Respo
 }
 
 // ResponseDynamic set handler which return response from OpenAPI v3 Document.
-// The response mode can be specified using the PrioritizeExamples option.
+// The response mode is determined by the Router's responseMode.
 func (m *matcher) ResponseDynamic(opts ...responseExampleOption) {
 	if m.router.openAPI3Doc == nil {
 		m.router.t.Error("no OpenAPI v3 document is set")
@@ -777,16 +771,16 @@ func (m *matcher) ResponseDynamic(opts ...responseExampleOption) {
 		var contentType string
 		var err error
 
-		// Select response generation method based on response mode
-		switch c.responseMode {
+		// Select response generation method based on router's response mode
+		switch m.router.responseMode {
 		case ExamplesOnly:
 			status, exampleNode, contentType, err = m.findResponseExample(r, op.Responses, c.status)
-		case DynamicOnly:
+		case AlwaysGenerate:
 			status, exampleNode, contentType, err = m.findResponseContentDynamic(r, op.Responses, c.status)
-		case Auto:
+		case PreferExamples:
 			status, exampleNode, contentType, err = m.findResponseContentAuto(r, op.Responses, c.status)
 		default:
-			// Default to exmples only
+			// Default to examples only
 			status, exampleNode, contentType, err = m.findResponseExample(r, op.Responses, c.status)
 		}
 
@@ -811,7 +805,7 @@ func (m *matcher) ResponseDynamic(opts ...responseExampleOption) {
 }
 
 // ResponseDynamic set handler which return response from OpenAPI v3 Document.
-// The response mode can be specified using the PrioritizeExamples option.
+// The response mode is determined by the Router's responseMode.
 func (rt *Router) ResponseDynamic(opts ...responseExampleOption) {
 	m := &matcher{
 		matchFuncs: []matchFunc{func(_ *http.Request) bool { return true }},
