@@ -89,31 +89,31 @@ func TestGet(t *testing.T) {
 }
 ```
 
-## Response using `examples:` of OpenAPI Document
+## Dynamic Response
 
-httpstub can return responses using [`examples:` of OpenAPI Document](https://swagger.io/docs/specification/adding-examples/).
+httpstub can return responses dynamically using the OpenAPI v3 Document schema.
 
-### Use `examples:` in all responses
-
-``` go
-ts := httpstub.NewServer(t, httpstub.OpenApi3("path/to/schema.yml"))
-t.Cleanup(func() {
-	ts.Close()
-})
-ts.ResponseExample()
-```
-
-### Use `examples:` in response to specific endpoint
+### Dynamic response to all requests
 
 ``` go
 ts := httpstub.NewServer(t, httpstub.OpenApi3("path/to/schema.yml"))
 t.Cleanup(func() {
 	ts.Close()
 })
-ts.Method(http.MethodGet).Path("/api/v1/users/1").ResponseExample()
+ts.ResponseDynamic()
 ```
 
-### Use specific status code `examples:` in the response
+### Dynamic response to a specific endpoint
+
+``` go
+ts := httpstub.NewServer(t, httpstub.OpenApi3("path/to/schema.yml"))
+t.Cleanup(func() {
+	ts.Close()
+})
+ts.Method(http.MethodGet).Path("/api/v1/users/1").ResponseDynamic()
+```
+
+### Use specific status code in the response
 
 It is possible to specify status codes using wildcard.
 
@@ -122,7 +122,45 @@ ts := httpstub.NewServer(t, httpstub.OpenApi3("path/to/schema.yml"))
 t.Cleanup(func() {
 	ts.Close()
 })
-ts.Method(http.MethodPost).Path("/api/v1/users").ResponseExample(httpstub.Status("2*"))
+ts.Method(http.MethodPost).Path("/api/v1/users").ResponseDynamic(httpstub.Status("2*"))
+```
+
+### Response modes
+
+httpstub supports three response modes that control how responses are generated:
+
+- **AlwaysGenerate** (default): Always generates responses from schemas. Examples in the OpenAPI document are ignored.
+- **ExamplesOnly**: Uses only explicit examples from the OpenAPI document. If no example is found, an error is returned.
+- **PreferExamples**: Prefers examples but falls back to schema generation if no example is found.
+
+``` go
+// Use examples only (error if not found)
+ts := httpstub.NewServer(t, httpstub.OpenApi3("path/to/schema.yml"), httpstub.DynamicResponseMode(httpstub.ExamplesOnly))
+t.Cleanup(func() {
+	ts.Close()
+})
+ts.ResponseDynamic()
+```
+
+``` go
+// Prefer examples, fallback to schema generation
+ts := httpstub.NewServer(t, httpstub.OpenApi3("path/to/schema.yml"), httpstub.DynamicResponseMode(httpstub.PreferExamples))
+t.Cleanup(func() {
+	ts.Close()
+})
+ts.ResponseDynamic()
+```
+
+### Deterministic response generation
+
+Use the `Seed` option for deterministic response generation.
+
+``` go
+ts := httpstub.NewServer(t, httpstub.OpenApi3("path/to/schema.yml"), httpstub.Seed(12345))
+t.Cleanup(func() {
+	ts.Close()
+})
+ts.ResponseDynamic()
 ```
 
 ### HTTP Client that always makes HTTP request to stub server
