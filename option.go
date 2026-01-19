@@ -225,8 +225,8 @@ func Seed(seed int64) Option {
 }
 
 // WithResponseMode sets the response mode for ResponseDynamic.
-// - ExamplesOnly: Use only explicit examples (error if not found) - default
-// - AlwaysGenerate: Always generate from schema (ignore examples)
+// - AlwaysGenerate: Always generate from schema (ignore examples) - default
+// - ExamplesOnly: Use only explicit examples (error if not found)
 // - PreferExamples: Prefer examples, fallback to schema generation
 func WithResponseMode(mode ResponseMode) Option {
 	return func(c *config) error {

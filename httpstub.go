@@ -41,13 +41,13 @@ var (
 type ResponseMode int
 
 const (
-	// ExamplesOnly uses only explicit examples from the OpenAPI document.
-	// If no example is found, an error is returned.
-	// This is the default behavior.
-	ExamplesOnly ResponseMode = iota
 	// AlwaysGenerate always generates responses from schemas.
 	// Examples are ignored.
-	AlwaysGenerate
+	// This is the default behavior.
+	AlwaysGenerate ResponseMode = iota
+	// ExamplesOnly uses only explicit examples from the OpenAPI document.
+	// If no example is found, an error is returned.
+	ExamplesOnly
 	// PreferExamples prefers examples but falls back to schema generation.
 	PreferExamples
 )
@@ -158,7 +158,7 @@ func NewRouter(t TB, opts ...Option) *Router {
 
 	mode := c.responseMode
 	if mode == 0 {
-		mode = ExamplesOnly
+		mode = AlwaysGenerate
 	}
 
 	rt := &Router{
@@ -773,15 +773,16 @@ func (m *matcher) ResponseDynamic(opts ...responseExampleOption) {
 
 		// Select response generation method based on router's response mode
 		switch m.router.responseMode {
-		case ExamplesOnly:
-			status, exampleNode, contentType, err = m.findResponseExample(r, op.Responses, c.status)
 		case AlwaysGenerate:
 			status, exampleNode, contentType, err = m.findResponseContentDynamic(r, op.Responses, c.status)
+		case ExamplesOnly:
+			status, exampleNode, contentType, err = m.findResponseExample(r, op.Responses, c.status)
 		case PreferExamples:
 			status, exampleNode, contentType, err = m.findResponseContentAuto(r, op.Responses, c.status)
 		default:
-			// Default to examples only
-			status, exampleNode, contentType, err = m.findResponseExample(r, op.Responses, c.status)
+			// This should never happen as responseMode is always set to a valid value in NewRouter
+			m.router.t.Fatalf("invalid response mode: %v", m.router.responseMode)
+			return
 		}
 
 		if err != nil {
