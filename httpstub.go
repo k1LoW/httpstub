@@ -5,11 +5,12 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	mrand "math/rand"
+	mrand "math/rand/v2"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -192,7 +193,9 @@ func NewRouter(t TB, opts ...Option) *Router {
 	}
 	mg.SetSeed(seed)
 	rt.mockGenerator = mg
-	rt.rng = mrand.New(mrand.NewSource(seed))
+	var seedBytes [32]byte
+	binary.LittleEndian.PutUint64(seedBytes[:8], uint64(seed)) //nolint:gosec
+	rt.rng = mrand.New(mrand.NewChaCha8(seedBytes))            //nolint:gosec
 
 	return rt
 }
@@ -583,7 +586,7 @@ func (m *matcher) selectMatchedResponses(responses *v3.Responses, pattern string
 
 // pickStatusAndResponse selects one of the matched responses (randomly) and returns its status and response.
 func (m *matcher) pickStatusAndResponse(matchedResps []orderedmap.Pair[string, *v3.Response]) (int, *v3.Response, string, error) {
-	idx := m.router.rng.Intn(len(matchedResps)) //nolint:gosec
+	idx := m.router.rng.IntN(len(matchedResps))
 	statusStr := matchedResps[idx].Key()
 	status, err := strconv.Atoi(statusStr)
 	if err != nil {
