@@ -187,6 +187,19 @@ paths:
               examples:
                 ex1:
                   value: pong
+  /pattern:
+    get:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    pattern: '^[a-f0-9]{8}$'
 components:
   schemas:
     Username:

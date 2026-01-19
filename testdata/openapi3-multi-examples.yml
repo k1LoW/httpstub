@@ -1,0 +1,28 @@
+openapi: 3.0.3
+info:
+  title: multi examples spec
+  version: 0.0.1
+servers:
+  - url: 'https://example.com/api/v1'
+paths:
+  /multi:
+    get:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    pattern: '^[a-z]{5}$'
+              examples:
+                ex1:
+                  value:
+                    message: hello
+                ex2:
+                  value:
+                    message: world
+components: {}

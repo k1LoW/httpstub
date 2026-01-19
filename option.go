@@ -26,6 +26,8 @@ type config struct {
 	skipCircularReferenceCheck          bool
 	addr                                string
 	basePath                            string
+	seed                                int64
+	responseMode                        ResponseMode
 }
 
 type Option func(*config) error
@@ -210,6 +212,17 @@ func BasePath(basePath string) Option {
 			return errors.New("basePath must not end with '/'")
 		}
 		c.basePath = basePath
+		return nil
+	}
+}
+
+// WithResponseMode sets the response mode for ResponseDynamic.
+// - AlwaysGenerate: Always generate from schema (ignore examples) - default
+// - ExamplesOnly: Use only explicit examples (error if not found)
+// - PreferExamples: Prefer examples, fallback to schema generation
+func WithResponseMode(mode ResponseMode) Option {
+	return func(c *config) error {
+		c.responseMode = mode
 		return nil
 	}
 }

@@ -3,14 +3,12 @@ package httpstub
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	mrand "math/rand"
 	"net"
 	"net/http"
@@ -21,20 +19,37 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	wildcard "github.com/IGLOU-EU/go-wildcard/v2"
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
 	"github.com/pb33f/libopenapi-validator/paths"
-	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
 	openapijson "github.com/pb33f/libopenapi/json"
 	"github.com/pb33f/libopenapi/orderedmap"
+	"github.com/pb33f/libopenapi/renderer"
+	"go.yaml.in/yaml/v4"
 )
 
 var (
 	_ http.Handler = (*Router)(nil)
 	_ TB           = (testing.TB)(nil)
+)
+
+// ResponseMode defines how to generate responses from OpenAPI documents.
+type ResponseMode int
+
+const (
+	// AlwaysGenerate always generates responses from schemas.
+	// Examples are ignored.
+	// This is the default behavior.
+	AlwaysGenerate ResponseMode = iota
+	// ExamplesOnly uses only explicit examples from the OpenAPI document.
+	// If no example is found, an error is returned.
+	ExamplesOnly
+	// PreferExamples prefers examples but falls back to schema generation.
+	PreferExamples
 )
 
 type TB interface {
@@ -63,6 +78,9 @@ type Router struct {
 	prependOnce                         bool
 	addr                                string
 	basePath                            string
+	mockGenerator                       *renderer.MockGenerator
+	rng                                 *mrand.Rand
+	responseMode                        ResponseMode
 	mu                                  sync.RWMutex
 }
 
@@ -138,6 +156,11 @@ func NewRouter(t TB, opts ...Option) *Router {
 		}
 	}
 
+	mode := c.responseMode
+	if mode == 0 {
+		mode = AlwaysGenerate
+	}
+
 	rt := &Router{
 		t:                    t,
 		useTLS:               c.useTLS,
@@ -153,10 +176,24 @@ func NewRouter(t TB, opts ...Option) *Router {
 		skipValidateResponse: c.skipValidateResponse,
 		addr:                 c.addr,
 		basePath:             c.basePath,
+		responseMode:         mode,
 	}
 	if err := rt.setOpenApi3Vaildator(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Initialize MockGenerator (use JSON mock type) and seed math/rand for deterministic example selection in tests
+	mg := renderer.NewMockGenerator(renderer.JSON)
+	var seed int64
+	if c.seed != 0 {
+		seed = c.seed
+	} else {
+		seed = time.Now().UnixNano()
+	}
+	mg.SetSeed(seed)
+	rt.mockGenerator = mg
+	rt.rng = mrand.New(mrand.NewSource(seed))
+
 	return rt
 }
 
@@ -514,7 +551,9 @@ type responseExampleConfig struct {
 }
 
 func newResponseExampleConfig() *responseExampleConfig {
-	return &responseExampleConfig{status: "*"}
+	return &responseExampleConfig{
+		status: "*",
+	}
 }
 
 type responseExampleOption func(c *responseExampleConfig) error
@@ -527,8 +566,171 @@ func Status(pattern string) responseExampleOption {
 	}
 }
 
-// ResponseExample set handler which return response using examples of OpenAPI v3 Document.
-func (m *matcher) ResponseExample(opts ...responseExampleOption) {
+// selectMatchedResponses returns responses that match the given status pattern.
+func (m *matcher) selectMatchedResponses(responses *v3.Responses, pattern string) ([]orderedmap.Pair[string, *v3.Response], error) {
+	resMap := responses.Codes
+	var matchedResps []orderedmap.Pair[string, *v3.Response]
+	for p := range orderedmap.Iterate(context.Background(), resMap) {
+		if wildcard.Match(pattern, p.Key()) {
+			matchedResps = append(matchedResps, p)
+		}
+	}
+	if len(matchedResps) == 0 {
+		return nil, fmt.Errorf("failed to find response matching pattern: %s", pattern)
+	}
+	return matchedResps, nil
+}
+
+// pickStatusAndResponse selects one of the matched responses (randomly) and returns its status and response.
+func (m *matcher) pickStatusAndResponse(matchedResps []orderedmap.Pair[string, *v3.Response]) (int, *v3.Response, string, error) {
+	idx := m.router.rng.Intn(len(matchedResps)) //nolint:gosec
+	statusStr := matchedResps[idx].Key()
+	status, err := strconv.Atoi(statusStr)
+	if err != nil {
+		return 0, nil, "", fmt.Errorf("invalid status code: %w", err)
+	}
+	return status, matchedResps[idx].Value(), "", nil
+}
+
+// pickMediaType determines the media type to use from response content and request Accept header.
+func (m *matcher) pickMediaType(res *v3.Response, req *http.Request) (*v3.MediaType, string) {
+	if res.Content == nil {
+		return nil, ""
+	}
+	accepts := strings.Split(req.Header.Get("Accept"), ",")
+	var contentTypes []string
+	for _, a := range accepts {
+		contentTypes = append(contentTypes, strings.TrimSpace(a))
+	}
+
+	var mt *v3.MediaType
+	var contentType string
+	for _, ct := range contentTypes {
+		if tmp, ok := res.Content.Get(ct); ok {
+			mt = tmp
+			contentType = ct
+			break
+		}
+	}
+	if mt == nil {
+		if p := res.Content.Oldest(); p != nil {
+			mt = p.Value
+			contentType = p.Key
+		}
+	}
+	return mt, contentType
+}
+
+// genMockFromMediaType generates a mock yaml.Node from a media type's schema.
+func (m *matcher) genMockFromMediaType(mt *v3.MediaType) (*yaml.Node, error) {
+	if mt == nil || mt.Schema == nil {
+		return nil, fmt.Errorf("no schema available to generate mock")
+	}
+	mockBytes, genErr := m.router.mockGenerator.GenerateMock(mt.Schema.Schema(), "")
+	if genErr != nil {
+		return nil, fmt.Errorf("failed to generate mock data: %w", genErr)
+	}
+	var mockNode yaml.Node
+	if err := yaml.Unmarshal(mockBytes, &mockNode); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal generated mock: %w", err)
+	}
+	return &mockNode, nil
+}
+
+// selectExample selects the first available example from the media type in deterministic order.
+// Returns true if an example was successfully selected, false otherwise.
+func (m *matcher) selectExample(mt *v3.MediaType, status int, contentType string) (int, *yaml.Node, string, bool) {
+	if mt == nil {
+		return 0, nil, "", false
+	}
+	if mt.Examples != nil && mt.Examples.Len() > 0 {
+		for p := range orderedmap.Iterate(context.Background(), mt.Examples) {
+			ex := p.Value()
+			if ex != nil && ex.Value != nil {
+				return status, ex.Value, contentType, true
+			}
+		}
+	}
+	if mt.Example != nil {
+		return status, mt.Example, contentType, true
+	}
+	return 0, nil, "", false
+}
+
+// generateFromSchema generates a mock response from the schema of the media type.
+func (m *matcher) generateFromSchema(mt *v3.MediaType, status int, contentType string) (int, *yaml.Node, string, error) {
+	if mt != nil && mt.Schema != nil {
+		if node, e := m.genMockFromMediaType(mt); e == nil {
+			return status, node, contentType, nil
+		} else {
+			return 0, nil, "", e
+		}
+	}
+	return 0, nil, "", fmt.Errorf("no schema available to generate mock for response status %d", status)
+}
+
+// prepareResponse is a helper method to prepare response components (status, media type, content type).
+func (m *matcher) prepareResponse(req *http.Request, responses *v3.Responses, pattern string) (status int, mt *v3.MediaType, contentType string, err error) {
+	matchedResps, err := m.selectMatchedResponses(responses, pattern)
+	if err != nil {
+		return 0, nil, "", err
+	}
+
+	status, res, _, err := m.pickStatusAndResponse(matchedResps)
+	if err != nil {
+		return 0, nil, "", err
+	}
+
+	mt, contentType = m.pickMediaType(res, req)
+	return status, mt, contentType, nil
+}
+
+// findResponseContentDynamic is a helper method to generate random data from schema only (no examples).
+func (m *matcher) findResponseContentDynamic(req *http.Request, responses *v3.Responses, pattern string) (status int, exampleNode *yaml.Node, contentType string, err error) {
+	status, mt, contentType, err := m.prepareResponse(req, responses, pattern)
+	if err != nil {
+		return 0, nil, "", err
+	}
+
+	// Always generate from schema (no examples)
+	return m.generateFromSchema(mt, status, contentType)
+}
+
+// findResponseExample is a helper method to find the example only (no fallback to generation).
+func (m *matcher) findResponseExample(req *http.Request, responses *v3.Responses, pattern string) (status int, exampleNode *yaml.Node, contentType string, err error) {
+	status, mt, contentType, err := m.prepareResponse(req, responses, pattern)
+	if err != nil {
+		return 0, nil, "", err
+	}
+
+	// Only use examples (deterministic selection)
+	if s, node, ct, ok := m.selectExample(mt, status, contentType); ok {
+		return s, node, ct, nil
+	}
+
+	return 0, nil, "", fmt.Errorf("no example found for response status %d", status)
+}
+
+// findResponseContentAuto is a helper method to find the example or generate random data.
+// It prefers examples, but falls back to schema-based generation if no example is found.
+func (m *matcher) findResponseContentAuto(req *http.Request, responses *v3.Responses, pattern string) (status int, exampleNode *yaml.Node, contentType string, err error) {
+	status, mt, contentType, err := m.prepareResponse(req, responses, pattern)
+	if err != nil {
+		return 0, nil, "", err
+	}
+
+	// Prefer examples if present (deterministic selection)
+	if s, node, ct, ok := m.selectExample(mt, status, contentType); ok {
+		return s, node, ct, nil
+	}
+
+	// Fallback to generation from schema
+	return m.generateFromSchema(mt, status, contentType)
+}
+
+// ResponseDynamic set handler which return response from OpenAPI v3 Document.
+// The response mode is determined by the Router's responseMode.
+func (m *matcher) ResponseDynamic(opts ...responseExampleOption) {
 	if m.router.openAPI3Doc == nil {
 		m.router.t.Error("no OpenAPI v3 document is set")
 		return
@@ -540,6 +742,7 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 			return
 		}
 	}
+
 	doc := m.router.openAPI3Doc
 	v3m, err := doc.BuildV3Model()
 	if err != nil {
@@ -562,19 +765,33 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 			m.router.t.Errorf("failed to find route (%v %v) operation of method: %s", r.Method, pathValue, r.Method)
 			return
 		}
-		status, e, contentType, err := matchOne(r, op.Responses, c.status)
+
+		var status int
+		var exampleNode *yaml.Node
+		var contentType string
+		var err error
+
+		// Select response generation method based on router's response mode
+		switch m.router.responseMode {
+		case AlwaysGenerate:
+			status, exampleNode, contentType, err = m.findResponseContentDynamic(r, op.Responses, c.status)
+		case ExamplesOnly:
+			status, exampleNode, contentType, err = m.findResponseExample(r, op.Responses, c.status)
+		case PreferExamples:
+			status, exampleNode, contentType, err = m.findResponseContentAuto(r, op.Responses, c.status)
+		default:
+			// This should never happen as responseMode is always set to a valid value in NewRouter
+			m.router.t.Fatalf("invalid response mode: %v", m.router.responseMode)
+			return
+		}
+
 		if err != nil {
-			m.router.t.Errorf("failed to find route (%v %v) response: %w", r.Method, pathValue, err)
+			m.router.t.Errorf("failed to generate response for route (%v %v): %v", r.Method, pathValue, err)
 			return
 		}
 		var b []byte
-		switch {
-		case e == nil:
-			b = nil
-		case strings.Contains(contentType, "text"):
-			b = []byte(e.Value.Value)
-		default:
-			b, err = openapijson.YAMLNodeToJSON(e.Value, "  ")
+		if exampleNode != nil {
+			b, err = openapijson.YAMLNodeToJSON(exampleNode, "  ")
 			if err != nil {
 				m.router.t.Errorf("failed to marshal body of route (%v %v %v)", status, r.Method, pathValue)
 				return
@@ -588,8 +805,9 @@ func (m *matcher) ResponseExample(opts ...responseExampleOption) {
 	m.handler = http.HandlerFunc(fn)
 }
 
-// ResponseExample set handler which return response using examples of OpenAPI v3 Document.
-func (rt *Router) ResponseExample(opts ...responseExampleOption) {
+// ResponseDynamic set handler which return response from OpenAPI v3 Document.
+// The response mode is determined by the Router's responseMode.
+func (rt *Router) ResponseDynamic(opts ...responseExampleOption) {
 	m := &matcher{
 		matchFuncs: []matchFunc{func(_ *http.Request) bool { return true }},
 		router:     rt,
@@ -597,7 +815,7 @@ func (rt *Router) ResponseExample(opts ...responseExampleOption) {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
 	rt.addMatcher(m)
-	m.ResponseExample(opts...)
+	m.ResponseDynamic(opts...)
 }
 
 // Requests returns []*http.Request received by router.
@@ -720,86 +938,6 @@ func (t *transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	r.URL.Opaque = t.URL.Opaque
 	res, err := t.transport().RoundTrip(r)
 	return res, err
-}
-
-func one[K comparable, V *base.Example](m *orderedmap.Map[K, V]) V {
-	l := m.Len()
-	n, err := rand.Int(rand.Reader, big.NewInt(int64(l)))
-	if err != nil {
-		// Return the first element if an error occurs
-		for p := range orderedmap.Iterate(context.Background(), m) {
-			return p.Value()
-		}
-		return nil
-	}
-	i := int(n.Int64())
-	for p := range orderedmap.Iterate(context.Background(), m) {
-		if i == 0 {
-			return p.Value()
-		}
-		i--
-	}
-	return nil
-}
-
-// matchOne returns match one randomly from map.
-func matchOne(req *http.Request, r *v3.Responses, pattern string) (status int, example *base.Example, contentType string, err error) {
-	m := r.Codes
-	var matched []orderedmap.Pair[string, *v3.Response]
-	for p := range orderedmap.Iterate(context.Background(), m) {
-		if wildcard.Match(pattern, p.Key()) {
-			matched = append(matched, p)
-		}
-	}
-	if len(matched) == 0 {
-		return 0, nil, "", fmt.Errorf("failed to find response matching pattern: %s", pattern)
-	}
-	idx := mrand.Intn(len(matched)) //nolint:gosec
-	status, err = strconv.Atoi(matched[idx].Key())
-	if err != nil {
-		return 0, nil, "", fmt.Errorf("invalid status code: %w", err)
-	}
-	res := matched[idx].Value()
-	accepts := strings.Split(req.Header.Get("Accept"), ",")
-	var contentTypes []string
-	for _, a := range accepts {
-		contentTypes = append(contentTypes, strings.TrimSpace(a))
-	}
-	var e *base.Example
-	if res.Content != nil {
-		var (
-			mt *v3.MediaType
-			ok bool
-		)
-		for _, ct := range contentTypes {
-			mt, ok = res.Content.Get(ct)
-			if !ok {
-				continue
-			}
-			contentType = ct
-			if mt.Examples.Len() == 0 {
-				continue
-			}
-			e = one(mt.Examples)
-			break
-		}
-		if mt == nil {
-			for p := range orderedmap.Iterate(context.Background(), res.Content) {
-				mt = p.Value()
-				contentType = p.Key()
-				if mt.Examples.Len() == 0 {
-					continue
-				}
-				e = one(mt.Examples)
-				break
-			}
-		}
-		if mt == nil {
-			return 0, nil, "", fmt.Errorf("failed to find example")
-		}
-	}
-
-	return status, e, contentType, nil
 }
 
 func withCloneReq(fn matchFunc) matchFunc {
