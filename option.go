@@ -216,14 +216,6 @@ func BasePath(basePath string) Option {
 	}
 }
 
-// Seed sets a seed for deterministic mock data generation for the entire router.
-func Seed(seed int64) Option {
-	return func(c *config) error {
-		c.seed = seed
-		return nil
-	}
-}
-
 // WithResponseMode sets the response mode for ResponseDynamic.
 // - AlwaysGenerate: Always generate from schema (ignore examples) - default
 // - ExamplesOnly: Use only explicit examples (error if not found)

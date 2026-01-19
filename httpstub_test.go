@@ -1100,7 +1100,7 @@ func TestResponseDynamicWithAlwaysGenerate(t *testing.T) {
 	// AlwaysGenerate mode should always generate data from schema, ignoring examples.
 	// Use an OpenAPI path that has a schema but no examples: /users/{id}
 	// Different seeds should produce different generated responses.
-	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), Seed(1), WithResponseMode(AlwaysGenerate))
+	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), WithResponseMode(AlwaysGenerate))
 	rt1.ResponseDynamic(Status("200"))
 	ts1 := rt1.Server()
 	t.Cleanup(func() { ts1.Close() })
@@ -1116,7 +1116,7 @@ func TestResponseDynamicWithAlwaysGenerate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), Seed(2), WithResponseMode(AlwaysGenerate))
+	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), WithResponseMode(AlwaysGenerate))
 	rt2.ResponseDynamic(Status("200"))
 	ts2 := rt2.Server()
 	t.Cleanup(func() { ts2.Close() })
@@ -1151,13 +1151,13 @@ func TestResponseDynamicWithAlwaysGenerate(t *testing.T) {
 func TestResponseExampleUsesOnlyExamples(t *testing.T) {
 	// ResponseDynamic with ExamplesOnly should only use examples and produce deterministic results.
 	// Multiple routers with the same seed should return identical responses.
-	rt1 := NewRouter(t, OpenApi3("testdata/openapi3-multi-examples.yml"), Seed(1), WithResponseMode(ExamplesOnly))
+	rt1 := NewRouter(t, OpenApi3("testdata/openapi3-multi-examples.yml"), WithResponseMode(ExamplesOnly))
 	rt1.ResponseDynamic(Status("200"))
 	ts1 := rt1.Server()
 	t.Cleanup(func() { ts1.Close() })
 	tc1 := ts1.Client()
 
-	rt2 := NewRouter(t, OpenApi3("testdata/openapi3-multi-examples.yml"), Seed(1), WithResponseMode(ExamplesOnly))
+	rt2 := NewRouter(t, OpenApi3("testdata/openapi3-multi-examples.yml"), WithResponseMode(ExamplesOnly))
 	rt2.ResponseDynamic(Status("200"))
 	ts2 := rt2.Server()
 	t.Cleanup(func() { ts2.Close() })
@@ -1192,13 +1192,13 @@ func TestResponseDynamicWithPreferExamples(t *testing.T) {
 	// ResponseDynamic with PreferExamples mode should prefer examples, but fall back to schema-based generation when no example exists.
 	// Using a path with schema but no examples (/users/{id}) to verify generation behavior.
 	// Different seeds should produce different generated responses.
-	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), Seed(1), WithResponseMode(PreferExamples))
+	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), WithResponseMode(PreferExamples))
 	rt1.ResponseDynamic(Status("200"))
 	ts1 := rt1.Server()
 	t.Cleanup(func() { ts1.Close() })
 	tc1 := ts1.Client()
 
-	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), Seed(2), WithResponseMode(PreferExamples))
+	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), WithResponseMode(PreferExamples))
 	rt2.ResponseDynamic(Status("200"))
 	ts2 := rt2.Server()
 	t.Cleanup(func() { ts2.Close() })
@@ -1269,7 +1269,7 @@ func TestResponseDynamicWithAlwaysGenerateIgnoresExamples(t *testing.T) {
 func TestDefaultResponseModeIsAlwaysGenerate(t *testing.T) {
 	// Test that the default response mode is AlwaysGenerate.
 	// When no WithResponseMode option is provided, responses should be generated from schema.
-	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), Seed(1))
+	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
 	rt1.ResponseDynamic(Status("200"))
 	ts1 := rt1.Server()
 	t.Cleanup(func() { ts1.Close() })
@@ -1285,7 +1285,7 @@ func TestDefaultResponseModeIsAlwaysGenerate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), Seed(2))
+	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"))
 	rt2.ResponseDynamic(Status("200"))
 	ts2 := rt2.Server()
 	t.Cleanup(func() { ts2.Close() })
