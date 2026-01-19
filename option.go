@@ -216,11 +216,11 @@ func BasePath(basePath string) Option {
 	}
 }
 
-// WithResponseMode sets the response mode for ResponseDynamic.
+// DynamicResponseMode sets the response mode for ResponseDynamic.
 // - AlwaysGenerate: Always generate from schema (ignore examples) - default
 // - ExamplesOnly: Use only explicit examples (error if not found)
 // - PreferExamples: Prefer examples, fallback to schema generation
-func WithResponseMode(mode ResponseMode) Option {
+func DynamicResponseMode(mode ResponseMode) Option {
 	return func(c *config) error {
 		c.responseMode = mode
 		return nil
