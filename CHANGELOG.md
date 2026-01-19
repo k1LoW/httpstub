@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.28.0](https://github.com/k1LoW/httpstub/compare/v0.27.3...v0.28.0) - 2026-01-19
+### Breaking Changes 🛠
+- Adds random mock response generation for OpenAPI stubs by @k2tzumi in https://github.com/k1LoW/httpstub/pull/152
+
 ## [v0.27.3](https://github.com/k1LoW/httpstub/compare/v0.27.2...v0.27.3) - 2025-12-15
 ### Other Changes
 - chore(deps): bump actions/checkout from 5 to 6 in the dependencies group by @dependabot[bot] in https://github.com/k1LoW/httpstub/pull/145
