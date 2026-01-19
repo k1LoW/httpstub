@@ -1311,6 +1311,37 @@ func TestDefaultResponseModeIsAlwaysGenerate(t *testing.T) {
 	}
 }
 
+func TestSeedDeterministic(t *testing.T) {
+	// Same seed should produce identical responses
+	rt1 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), DynamicResponseMode(AlwaysGenerate), Seed(12345))
+	rt1.ResponseDynamic(Status("200"))
+	ts1 := rt1.Server()
+	t.Cleanup(func() { ts1.Close() })
+
+	rt2 := NewRouter(t, OpenApi3("testdata/openapi3.yml"), DynamicResponseMode(AlwaysGenerate), Seed(12345))
+	rt2.ResponseDynamic(Status("200"))
+	ts2 := rt2.Server()
+	t.Cleanup(func() { ts2.Close() })
+
+	res1, err := ts1.Client().Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { res1.Body.Close() })
+	b1, _ := io.ReadAll(res1.Body)
+
+	res2, err := ts2.Client().Get("https://example.com/api/v1/users/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { res2.Body.Close() })
+	b2, _ := io.ReadAll(res2.Body)
+
+	if string(b1) != string(b2) {
+		t.Errorf("expected same responses with same seed, got:\n%s\n%s", string(b1), string(b2))
+	}
+}
+
 func BenchmarkNewServer(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		ts := NewServer(b)

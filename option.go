@@ -219,10 +219,18 @@ func BasePath(basePath string) Option {
 // DynamicResponseMode sets the response mode for ResponseDynamic.
 // - AlwaysGenerate: Always generate from schema (ignore examples) - default
 // - ExamplesOnly: Use only explicit examples (error if not found)
-// - PreferExamples: Prefer examples, fallback to schema generation
+// - PreferExamples: Prefer examples, fallback to schema generation.
 func DynamicResponseMode(mode ResponseMode) Option {
 	return func(c *config) error {
 		c.responseMode = mode
+		return nil
+	}
+}
+
+// Seed sets the seed for random number generation, enabling deterministic responses.
+func Seed(seed int64) Option {
+	return func(c *config) error {
+		c.seed = seed
 		return nil
 	}
 }
