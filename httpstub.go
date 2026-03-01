@@ -25,6 +25,7 @@ import (
 	wildcard "github.com/IGLOU-EU/go-wildcard/v2"
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
+	validatorconfig "github.com/pb33f/libopenapi-validator/config"
 	"github.com/pb33f/libopenapi-validator/paths"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
 	openapijson "github.com/pb33f/libopenapi/json"
@@ -752,9 +753,9 @@ func (m *matcher) ResponseDynamic(opts ...responseExampleOption) {
 		m.router.t.Errorf("failed to build OpenAPI v3 model: %v", err)
 		return
 	}
-	regexCache := &sync.Map{}
+	validationOpts := &validatorconfig.ValidationOptions{RegexCache: &sync.Map{}}
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		pathItem, errs, pathValue := paths.FindPath(r, &v3m.Model, regexCache)
+		pathItem, errs, pathValue := paths.FindPath(r, &v3m.Model, validationOpts)
 		if pathItem == nil || errs != nil {
 			var err error
 			for _, e := range errs {
