@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.28.1](https://github.com/k1LoW/httpstub/compare/v0.28.0...v0.28.1) - 2026-03-01
+### Other Changes
+- chore: update libopenapi and libopenapi-validator by @k1LoW in https://github.com/k1LoW/httpstub/pull/154
+
 ## [v0.28.0](https://github.com/k1LoW/httpstub/compare/v0.27.3...v0.28.0) - 2026-01-19
 ### Breaking Changes 🛠
 - Adds random mock response generation for OpenAPI stubs by @k2tzumi in https://github.com/k1LoW/httpstub/pull/152
