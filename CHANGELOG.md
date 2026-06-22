@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.28.2](https://github.com/k1LoW/httpstub/compare/v0.28.1...v0.28.2) - 2026-06-22
+
+### Other Changes
+- chore(deps): bump github.com/pb33f/libopenapi-validator from 0.13.1 to 0.13.3 in the dependencies group by @dependabot[bot] in https://github.com/k1LoW/httpstub/pull/156
+- chore(deps): bump actions/checkout from 6 to 7 in the dependencies group by @dependabot[bot] in https://github.com/k1LoW/httpstub/pull/161
+- chore(deps): bump github.com/buger/jsonparser from 1.1.1 to 1.1.2 by @dependabot[bot] in https://github.com/k1LoW/httpstub/pull/162
+- chore(deps): bump the dependencies group across 1 directory with 3 updates by @dependabot[bot] in https://github.com/k1LoW/httpstub/pull/160
+
 ## [v0.28.1](https://github.com/k1LoW/httpstub/compare/v0.28.0...v0.28.1) - 2026-03-01
 ### Other Changes
 - chore: update libopenapi and libopenapi-validator by @k1LoW in https://github.com/k1LoW/httpstub/pull/154
