@@ -5,9 +5,9 @@ go 1.25.7
 require (
 	github.com/IGLOU-EU/go-wildcard/v2 v2.1.1
 	github.com/golang/mock v1.6.0
-	github.com/pb33f/libopenapi v0.38.1
-	github.com/pb33f/libopenapi-validator v0.13.10
-	go.yaml.in/yaml/v4 v4.0.0-rc.5
+	github.com/pb33f/libopenapi v0.38.3
+	github.com/pb33f/libopenapi-validator v0.13.13
+	go.yaml.in/yaml/v4 v4.0.0-rc.6
 )
 
 require (
