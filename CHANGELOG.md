@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.28.3](https://github.com/k1LoW/httpstub/compare/v0.28.2...v0.28.3) - 2026-06-29
+
+### Other Changes
+- chore(deps): bump the dependencies group with 2 updates by @dependabot[bot] in https://github.com/k1LoW/httpstub/pull/164
+
 ## [v0.28.2](https://github.com/k1LoW/httpstub/compare/v0.28.1...v0.28.2) - 2026-06-22
 
 ### Other Changes
