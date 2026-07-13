@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.28.4](https://github.com/k1LoW/httpstub/compare/v0.28.3...v0.28.4) - 2026-07-13
+
+### Other Changes
+- chore(deps): bump github.com/pb33f/libopenapi-validator from 0.13.13 to 0.14.0 in the dependencies group by @dependabot[bot] in https://github.com/k1LoW/httpstub/pull/167
+- chore(deps): bump actions/setup-go from 6.4.0 to 6.5.0 in the dependencies group across 1 directory by @dependabot[bot] in https://github.com/k1LoW/httpstub/pull/163
+
 ## [v0.28.3](https://github.com/k1LoW/httpstub/compare/v0.28.2...v0.28.3) - 2026-07-04
 
 ### Other Changes
