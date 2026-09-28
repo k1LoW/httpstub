@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.28.5](https://github.com/k1LoW/httpstub/compare/v0.28.4...v0.28.5) - 2026-09-28
+
+### Other Changes
+- ci: generate CREDITS with gocredits v1.0.0 from a make target by @k1LoW in https://github.com/k1LoW/httpstub/pull/172
+
 ## [v0.28.4](https://github.com/k1LoW/httpstub/compare/v0.28.3...v0.28.4) - 2026-07-13
 
 ### Other Changes
