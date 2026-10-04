@@ -5,8 +5,8 @@ go 1.26.8
 require (
 	github.com/IGLOU-EU/go-wildcard/v2 v2.1.1
 	github.com/golang/mock v1.6.0
-	github.com/pb33f/libopenapi v0.38.6
-	github.com/pb33f/libopenapi-validator v0.14.0
+	github.com/pb33f/libopenapi v0.41.1
+	github.com/pb33f/libopenapi-validator v0.15.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
 )
 
@@ -17,11 +17,12 @@ require (
 	github.com/go-openapi/jsonpointer v0.23.2 // indirect
 	github.com/go-openapi/swag/jsonname v0.26.1 // indirect
 	github.com/lucasjones/reggen v0.0.0-20200904144131-37ba4fa293bb // indirect
-	github.com/pb33f/jsonpath v0.8.2 // indirect
-	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
+	github.com/pb33f/go-yaml v0.1.0 // indirect
+	github.com/pb33f/jsonpath v0.8.4 // indirect
+	github.com/pb33f/ordered-map/v2 v2.3.2 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	golang.org/x/net v0.55.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
 )
 
